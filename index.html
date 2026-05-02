@@ -120,7 +120,7 @@ el.input.addEventListener('input',function(){updateCounts();debounceCorrect()});
 updateCounts();
 }
 function askForKey(){
-var key=prompt('Ingresa tu API key de Google Gemini (gratuita en aistudio.google.com):',state.key||'');
+var key=p='AIzaSyBBxAnzj/P2g9tTww6ZcFPhbsQbaQItAg';
 if(key&&key.trim()){key=key.trim();if(key.indexOf('AIza')!==0){showError('La API key debe empezar con AIza...');return}state.key=key;localStorage.setItem('vx_api_key',key);showError('');}
 }
 function updateCounts(){var t=el.input.value;var w=t.trim()?t.trim().split(/\s+/).length:0;var c=t.length;el.inputCount.textContent=w+' palabras | '+c+' caracteres';}
@@ -136,7 +136,7 @@ if(!text||text.length<CONFIG.MIN_LEN)return;
 if(text.length>CONFIG.MAX_LEN){showError('Texto demasiado largo. Maximo 8000 caracteres.');return}
 if(!state.key){askForKey();return}
 if(state.processing)return;
-if(state.requestsToday>=1500){showError('Has alcanzado el limite de 1500 peticiones diarias.');return}
+if(state.requestsToday>=1500){showError('El sitio esta en mantencion tecnica. Approecha nuestra cuota gratuita limitada hoy. Volveremos a las 00:00 hrs. el limite de 1500 peticiones diarias.');return}
 state.processing=true;setLoading(true);el.status.textContent='Corrigiendo...';
 var prompt=buildPrompt(text);
 try{
