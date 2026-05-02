@@ -1,165 +1,250 @@
+Skip to main content
+We have updated our Terms of Service
+
+Corrector Académico Pro HTML
+4,111 tokens
+
+Model 11:38 a.m.
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+code
+Html
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verbaliax - Corrector Academico</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;line-height:1.6}
-.container{max-width:1200px;margin:0 auto;padding:16px}
-header{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid #334155;margin-bottom:16px;flex-wrap:wrap;gap:12px}
-.logo{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;color:#818cf8}
-.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#4f46e5);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
-.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-select{background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
-.toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:#94a3b8;cursor:pointer}
-.toggle input{appearance:none;width:40px;height:22px;background:#334155;border-radius:11px;position:relative;cursor:pointer;outline:none;border:1px solid #475569}
-.toggle input::after{content:'';position:absolute;width:16px;height:16px;background:#94a3b8;border-radius:50%;top:2px;left:2px;transition:.2s}
-.toggle input:checked{background:#6366f1;border-color:#6366f1}
-.toggle input:checked::after{background:#fff;transform:translateX(18px)}
-.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:768px){.panels{grid-template-columns:1fr}}
-.panel{background:#1e293b;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
-.panel-header{padding:12px 16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;background:rgba(99,102,241,.05)}
-.panel-header h3{font-size:14px;font-weight:600;color:#cbd5e1}
-.badge{font-size:11px;color:#64748b;background:#0f172a;padding:3px 10px;border-radius:12px}
-textarea{width:100%;min-height:280px;background:transparent;border:none;color:#e2e8f0;font-size:15px;padding:16px;resize:vertical;outline:none;font-family:inherit;line-height:1.7}
-textarea::placeholder{color:#475569}
-.output-area{min-height:280px;padding:16px;font-size:15px;line-height:1.7;overflow-y:auto;white-space:pre-wrap;color:#e2e8f0}
-.output-area .placeholder{color:#475569;font-style:italic}
-.panel-footer{padding:10px 16px;border-top:1px solid #334155;font-size:12px;color:#64748b;display:flex;justify-content:space-between;align-items:center}
-.status{font-size:12px}
-.status.typing{color:#f59e0b}
-.status.error{color:#ef4444}
-.status.success{color:#22c55e}
-.btn-sm{background:#334155;border:1px solid #475569;color:#94a3b8;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer}
-.btn-sm:hover{background:#475569;color:#e2e8f0}
-.btn-correct{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-left:8px}
-.btn-correct:hover{opacity:.9}
-.btn-correct:disabled{opacity:.5;cursor:not-allowed}
-.banner{position:fixed;top:0;left:0;right:0;padding:12px 16px;text-align:center;font-size:14px;z-index:1000;display:none}
-.banner.error{background:#7f1d1d;color:#fecaca;border-bottom:1px solid #b91c1c}
-.banner.show{display:block}
-.loading{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:999}
-.loading.show{display:flex}
-.spinner{width:40px;height:40px;border:3px solid #334155;border-top-color:#6366f1;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.stats-bar{padding:8px 0;font-size:12px;color:#64748b;display:flex;justify-content:space-between}
-.remaining{color:#22c55e}
-.remaining.warning{color:#f59e0b}
-.remaining.danger{color:#ef4444}
-::-webkit-scrollbar{width:6px}
-::-webkit-scrollbar-track{background:#0f172a}
-::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verbaliax | Corrector Académico Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        #maintenance-overlay { display: none; }
+    </style>
 </head>
-<body>
-<div id="errorBanner" class="banner error"></div>
-<div id="loadingOverlay" class="loading"><div class="spinner"></div><p style="color:#94a3b8;font-size:14px">Corrigiendo...</p></div>
+<body class="bg-slate-950 text-slate-200 min-h-screen font-sans">
 
-<div class="container">
-<header>
-<div class="logo"><div class="logo-icon">V</div>Verbaliax</div>
-<div class="controls">
-<select id="langSelect"><option value="es">Espanol</option><option value="en">English</option></select>
-<label class="toggle"><span>Modo Tutor</span><input type="checkbox" id="tutorToggle"></label>
-<button class="btn-sm" id="configBtn">Configurar API</button>
-</div>
-</header>
+    <!-- Maintenance Overlay -->
+    <div id="maintenance-overlay" class="fixed inset-0 z-[100] bg-slate-900/95 flex flex-col items-center justify-center text-center p-6">
+        <i class="fas fa-tools text-6xl text-amber-500 mb-6"></i>
+        <h1 class="text-3xl font-bold mb-2">Sistema en mantenimiento</h1>
+        <p class="text-slate-400 max-w-md">Has alcanzado el límite de 1,500 peticiones diarias. Por favor, intente más tarde.</p>
+        <p class="mt-4 text-xs text-slate-500 uppercase tracking-widest">Reinicio automático a las 00:00</p>
+    </div>
 
-<div class="stats-bar">
-<span id="inputCount">0 palabras | 0 caracteres</span>
-<span class="remaining" id="quotaDisplay">Peticiones hoy: --</span>
-</div>
+    <div class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-lg">
+                    <i class="fas fa-pen-nib text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-white">Verbaliax</h1>
+                    <p class="text-xs text-slate-400 uppercase tracking-widest">Corrector Académico Pro</p>
+                </div>
+            </div>
 
-<div class="panels">
-<div class="panel">
-<div class="panel-header"><h3>Borrador</h3><span class="badge">Escribe libremente</span></div>
-<textarea id="inputText" placeholder="Escribe tu texto aqui... El corrector trabajara automaticamente despues de 2 segundos de pausa."></textarea>
-<div class="panel-footer">
-<span id="typingStatus" class="status"></span>
-<div><button class="btn-sm" id="clearBtn">Limpiar</button><button class="btn-correct" id="correctNow">Corregir ahora</button></div>
-</div>
-</div>
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="relative">
+                    <i class="fas fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input type="password" id="api-key" placeholder="Google Gemini API Key" 
+                        class="bg-slate-900 border border-slate-700 rounded-full py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64 transition-all">
+                </div>
+                <div class="bg-slate-800 rounded-full px-4 py-2 text-xs font-mono text-slate-400 border border-slate-700">
+                    CUOTA: <span id="quota-count" class="text-indigo-400">0</span>/1500
+                </div>
+            </div>
+        </header>
 
-<div class="panel">
-<div class="panel-header"><h3>Texto Corregido</h3><div><button class="btn-sm" id="copyBtn">Copiar</button><button class="btn-sm" id="downloadBtn">Descargar</button></div></div>
-<div id="outputText" class="output-area"><span class="placeholder">El texto corregido aparecera aqui...</span></div>
-<div class="panel-footer"><span id="outputCount">0 palabras | 0 caracteres</span><span id="correctionStatus" class="status"></span></div>
-</div>
-</div>
+        <!-- Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                <div class="flex-1">
+                    <label class="text-xs uppercase text-slate-500 font-bold block mb-2">Idioma de Revisión</label>
+                    <select id="lang-select" class="bg-slate-800 border-none rounded-lg text-sm w-full p-2 focus:ring-2 focus:ring-indigo-500">
+                        <option value="es">Español (Académico)</option>
+                        <option value="en">English (Academic)</option>
+                    </select>
+                </div>
+                <div class="flex flex-col items-center border-l border-slate-700 pl-4">
+                    <label class="text-xs uppercase text-slate-500 font-bold mb-2">Modo Tutor</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="tutor-mode" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="flex items-end">
+                <button onclick="processText()" id="btn-process" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-900/20 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    MEJORAR TEXTO
+                </button>
+            </div>
+        </div>
 
-<div id="tutorPanel" style="margin-top:16px;display:none">
-<div class="panel">
-<div class="panel-header"><h3>Explicaciones del Tutor</h3></div>
-<div id="tutorContent" class="output-area" style="min-height:150px"><span class="placeholder">Las explicaciones apareceran aqui cuando actives el Modo Tutor y corrijas un texto.</span></div>
-</div>
-</div>
-</div>
+        <!-- Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[60vh]">
+            <!-- Draft -->
+            <div class="flex flex-col">
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <span class="text-sm font-semibold text-slate-400 italic">Borrador Original</span>
+                    <span id="char-count" class="text-xs text-slate-500">0 caracteres</span>
+                </div>
+                <textarea id="input-text" placeholder="Pega aquí tu ensayo, tesis o artículo..." 
+                    class="flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-6 text-slate-300 focus:outline-none focus:border-indigo-500 resize-none text-lg leading-relaxed shadow-inner"></textarea>
+            </div>
 
-<script>
-(function(){
-'use strict';
-var CONFIG={MODEL:'gemini-2.5-flash',API_URL:'https://generativelanguage.googleapis.com/v1beta/models/',DEBOUNCE:2000,MIN_LEN:10,MAX_LEN:8000};
-var state={key:localStorage.getItem('vx_api_key')||'',lang:localStorage.getItem('vx_lang')||'es',tutor:false,timer:null,processing:false,requestsToday:parseInt(localStorage.getItem('vx_req_today')||'0'),lastDate:localStorage.getItem('vx_req_date')||''};
-var el={};
-function $(id){return document.getElementById(id)}
-function init(){
-el.input=$('inputText');el.output=$('outputText');el.inputCount=$('inputCount');el.outputCount=$('outputCount');el.typing=$('typingStatus');el.status=$('correctionStatus');el.tutorToggle=$('tutorToggle');el.tutorPanel=$('tutorPanel');el.tutorContent=$('tutorContent');el.lang=$('langSelect');el.loading=$('loadingOverlay');el.banner=$('errorBanner');el.quota=$('quotaDisplay');
-el.lang.value=state.lang;updateQuotaDisplay();
-if(!state.key)askForKey();
-el.lang.addEventListener('change',function(){state.lang=this.value;localStorage.setItem('vx_lang',state.lang)});
-el.tutorToggle.addEventListener('change',function(){state.tutor=this.checked;el.tutorPanel.style.display=state.tutor?'block':'none'});
-$('configBtn').addEventListener('click',askForKey);
-$('clearBtn').addEventListener('click',function(){el.input.value='';updateCounts();el.output.innerHTML='<span class="placeholder">El texto corregido aparecera aqui...</span>';el.tutorContent.innerHTML='<span class="placeholder">Las explicaciones apareceran aqui...</span>'});
-$('correctNow').addEventListener('click',correct);
-$('copyBtn').addEventListener('click',copyOutput);
-$('downloadBtn').addEventListener('click',downloadOutput);
-el.input.addEventListener('input',function(){updateCounts();debounceCorrect()});
-updateCounts();
-}
-function askForKey(){
-var key=prompt('Ingresa tu API key de Google Gemini (gratuita en aistudio.google.com):',state.key||'');
-if(key&&key.trim()){key=key.trim();if(key.indexOf('AIza')!==0){showError('La API key debe empezar con AIza...');return}state.key=key;localStorage.setItem('vx_api_key',key);showError('');}
-}
-function updateCounts(){var t=el.input.value;var w=t.trim()?t.trim().split(/\s+/).length:0;var c=t.length;el.inputCount.textContent=w+' palabras | '+c+' caracteres';}
-function updateOutputCounts(text){var w=text.trim()?text.trim().split(/\s+/).length:0;var c=text.length;el.outputCount.textContent=w+' palabras | '+c+' caracteres';}
-function updateQuotaDisplay(){var today=new Date().toDateString();if(state.lastDate!==today){state.requestsToday=0;state.lastDate=today;localStorage.setItem('vx_req_date',today);localStorage.setItem('vx_req_today','0')}var remaining=1500-state.requestsToday;el.quota.textContent='Peticiones hoy: '+remaining;el.quota.className='remaining '+(remaining<300?'danger':remaining<800?'warning':'')}
-function trackRequest(){state.requestsToday++;localStorage.setItem('vx_req_today',String(state.requestsToday));updateQuotaDisplay();}
-function debounceCorrect(){clearTimeout(state.timer);el.typing.textContent='Escribiendo...';el.typing.className='status typing';state.timer=setTimeout(function(){el.typing.textContent='';correct()},CONFIG.DEBOUNCE);}
-function showError(msg){if(!msg){el.banner.className='banner error';el.banner.textContent='';return}el.banner.textContent=msg;el.banner.className='banner error show';setTimeout(function(){el.banner.className='banner error'},5000);}
-function setLoading(show){el.loading.className=show?'loading show':'loading';}
-async function correct(){
-var text=el.input.value.trim();
-if(!text||text.length<CONFIG.MIN_LEN)return;
-if(text.length>CONFIG.MAX_LEN){showError('Texto demasiado largo. Maximo 8000 caracteres.');return}
-if(!state.key){askForKey();return}
-if(state.processing)return;
-if(state.requestsToday>=1500){showError('Has alcanzado el limite de 1500 peticiones diarias.');return}
-state.processing=true;setLoading(true);el.status.textContent='Corrigiendo...';
-var prompt=buildPrompt(text);
-try{
-var url=CONFIG.API_URL+CONFIG.MODEL+':generateContent?key='+state.key;
-var res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:4096,topP:0.9}})});
-if(!res.ok){var err=await res.json().catch(function(){return{}});var msg=err.error&&err.error.message?err.error.message:'Error '+res.status;if(msg.indexOf('quota')!==-1||msg.indexOf('exceeded')!==-1||msg.indexOf('limit')!==-1){showError('Cuota de API agotada. Obtén una nueva API key gratuita en aistudio.google.com')}else if(res.status===400){showError('API key invalida. Verifica tu clave.')}else{showError('Error de conexion. Reintenta en unos minutos.')}console.error('API error:',msg);return}
-var data=await res.json();
-if(!data.candidates||!data.candidates[0]||!data.candidates[0].content){showError('Respuesta invalida de la API. Reintenta.');return}
-var raw=data.candidates[0].content.parts[0].text||'';
-var result=parseResult(raw);
-displayResult(result);trackRequest();el.status.textContent='Corregido';el.status.className='status success';setTimeout(function(){el.status.textContent='';el.status.className='status'},2000);
-}catch(e){console.error(e);showError('Error de conexion. Verifica tu internet o reintenta.')}
-finally{state.processing=false;setLoading(false)}
-}
-function buildPrompt(text){var isEs=state.lang==='es';if(state.tutor){return(isEs?'Eres un tutor de escritura academica. Corrige los errores del texto y EXPLICA brevemente cada error encontrado en formato lista numerada. Maximo 5 explicaciones, breves (1 linea cada una). Responde en este formato exacto:\n\nTEXTO_CORREGIDO:\n[texto corregido]\n\nEXPLICACIONES:\n1. [explicacion]\n2. [explicacion]\n\nTexto a corregir:\n"""'+text+'"""':'You are an academic writing tutor. Correct the errors in the text and BRIEFLY explain each error found in numbered list format. Maximum 5 explanations, brief (1 line each). Respond in this exact format:\n\nCORRECTED_TEXT:\n[corrected text]\n\nEXPLANATIONS:\n1. [explanation]\n2. [explanation]\n\nText to correct:\n"""'+text+'"""')}
-return(isEs?'Eres un corrector gramatical academico. Corrige SOLO errores de ortografia, puntuacion y gramatica del siguiente texto. Responde APENAS con el texto corregido, sin explicaciones, sin introduccion.\n\nTexto a corregir:\n"""'+text+'"""':'You are an academic grammar corrector. Fix ONLY spelling, punctuation and grammar errors in the following text. Respond ONLY with the corrected text, no explanations, no introduction.\n\nText to correct:\n"""'+text+'"""')}
-function parseResult(raw){var isEs=state.lang==='es';var marker=isEs?'TEXTO_CORREGIDO:':'CORRECTED_TEXT:';var expMarker=isEs?'EXPLICACIONES':'EXPLANATIONS';var corrected='';var explanations=[];var idx=raw.indexOf(marker);if(idx!==-1){var after=raw.substring(idx+marker.length);var eIdx=after.indexOf(expMarker);corrected=eIdx!==-1?after.substring(0,eIdx).trim():after.trim()}else{corrected=raw.trim()}if(state.tutor){var eIdx2=raw.indexOf(expMarker);if(eIdx2!==-1){var expText=raw.substring(eIdx2+expMarker.length).trim();var lines=expText.split('\n').map(function(l){return l.trim()}).filter(function(l){return l.length>5});explanations=lines.slice(0,5)}}return{corrected:corrected||raw,explanations:explanations}}
-function displayResult(result){el.output.textContent=result.corrected;updateOutputCounts(result.corrected);if(state.tutor&&result.explanations.length>0){el.tutorContent.innerHTML=result.explanations.map(function(e,i){return'<div style="margin-bottom:10px;padding:10px;background:#0f172a;border-radius:6px;border-left:3px solid #6366f1"><strong>'+(i+1)+'.</strong> '+escapeHtml(e)+'</div>'}).join('')}else if(state.tutor){el.tutorContent.innerHTML='<span class="placeholder">No se encontraron errores significativos para explicar.</span>'}}
-function escapeHtml(text){var d=document.createElement('div');d.textContent=text;return d.innerHTML}
-function copyOutput(){var t=el.output.textContent;if(!t||t.indexOf('aparecera')!==-1)return;navigator.clipboard.writeText(t).then(function(){var old=el.status.textContent;el.status.textContent='Copiado!';el.status.className='status success';setTimeout(function(){el.status.textContent=old},1500)})}
-function downloadOutput(){var t=el.output.textContent;if(!t||t.indexOf('aparecera')!==-1)return;var b=new Blob([t],{type:'text/plain'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='verbaliax-correccion.txt';a.click();URL.revokeObjectURL(u)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
+            <!-- Result -->
+            <div class="flex flex-col">
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <span class="text-sm font-semibold text-indigo-400 italic">Versión Perfeccionada</span>
+                    <button onclick="copyToClipboard()" class="text-xs text-slate-500 hover:text-indigo-400 transition-colors">
+                        <i class="fas fa-copy mr-1"></i> Copiar resultado
+                    </button>
+                </div>
+                <div id="output-text" class="flex-1 bg-slate-900/30 border border-slate-800 rounded-2xl p-6 text-slate-300 overflow-y-auto text-lg leading-relaxed relative">
+                    <div id="placeholder-result" class="absolute inset-0 flex items-center justify-center text-slate-600 pointer-events-none px-8 text-center">
+                        El texto corregido aparecerá aquí manteniendo el rigor académico.
+                    </div>
+                    <div id="result-content" class="whitespace-pre-wrap"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-8 text-center text-slate-600 text-xs">
+            &copy; 2024 Verbaliax AI. Desarrollado para excelencia académica.
+        </footer>
+    </div>
+
+    <script>
+        // --- Configuration & Quota Logic ---
+        const MAX_QUOTA = 1500;
+        
+        function checkQuota() {
+            const today = new Date().toLocaleDateString();
+            const lastReset = localStorage.getItem('verbaliax_last_reset');
+            let count = parseInt(localStorage.getItem('verbaliax_count') || '0');
+
+            if (lastReset !== today) {
+                count = 0;
+                localStorage.setItem('verbaliax_last_reset', today);
+                localStorage.setItem('verbaliax_count', '0');
+            }
+
+            document.getElementById('quota-count').innerText = count;
+
+            if (count >= MAX_QUOTA) {
+                document.getElementById('maintenance-overlay').style.display = 'flex';
+                return false;
+            }
+            return true;
+        }
+
+        function incrementQuota() {
+            let count = parseInt(localStorage.getItem('verbaliax_count') || '0');
+            count++;
+            localStorage.setItem('verbaliax_count', count.toString());
+            document.getElementById('quota-count').innerText = count;
+            checkQuota();
+        }
+
+        // --- Core Functions ---
+        async function processText() {
+            if (!checkQuota()) return;
+
+            const apiKey = document.getElementById('api-key').value;
+            const text = document.getElementById('input-text').value;
+            const lang = document.getElementById('lang-select').value;
+            const isTutor = document.getElementById('tutor-mode').checked;
+            const btn = document.getElementById('btn-process');
+            const resultContent = document.getElementById('result-content');
+            const placeholder = document.getElementById('placeholder-result');
+
+            if (!apiKey) {
+                alert("Por favor, introduce tu API Key de Gemini");
+                return;
+            }
+            if (!text.trim()) {
+                alert("Escribe algo para corregir");
+                return;
+            }
+
+            // UI Loading State
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> PROCESANDO...`;
+            placeholder.style.display = 'none';
+            resultContent.innerHTML = '<span class="text-indigo-400 animate-pulse">Analizando estructura gramatical y semántica...</span>';
+
+            const systemPrompt = lang === 'es' 
+                ? `Eres un experto corrector de textos académicos en español. Corrige la ortografía, gramática y mejora el léxico para que sea formal y académico. Mantén el significado original. ${isTutor ? "Al final, añade una sección de 'EXPLICACIÓN DE CAMBIOS' detallando brevemente los errores corregidos." : ""}`
+                : `You are an expert academic editor in English. Correct spelling, grammar, and enhance vocabulary to be formal and scholarly. Maintain the original meaning. ${isTutor ? "At the end, add a 'CORRECTION LOG' section explaining the changes made." : ""}`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: `${systemPrompt}\n\nTexto a corregir:\n${text}` }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) throw new Error(data.error.message);
+
+                const correctedText = data.candidates[0].content.parts[0].text;
+                resultContent.innerText = correctedText;
+                incrementQuota();
+
+            } catch (error) {
+                resultContent.innerHTML = `<span class="text-red-400">Error: ${error.message}</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-wand-magic-sparkles"></i> MEJORAR TEXTO`;
+            }
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('result-content').innerText;
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("¡Texto copiado al portapapeles!");
+            });
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('input-text').addEventListener('input', function() {
+            document.getElementById('char-count').innerText = `${this.value.length} caracteres`;
+        });
+
+        // Initialize
+        checkQuota();
+        
+        // Auto-save API Key
+        const savedKey = localStorage.getItem('verbaliax_key');
+        if (savedKey) document.getElementById('api-key').value = savedKey;
+        document.getElementById('api-key').addEventListener('change', (e) => {
+            localStorage.setItem('verbaliax_key', e.target.value);
+        });
+    </script>
 </body>
 </html>
+21.3s
+info
+Google AI models may make mistakes, so double-check outputs.
+Use Arrow Up and Arrow Down to select a turn, Enter to jump to it, and Escape to return to the chat.
+Start typing a prompt to see what our models can do
+
+google
+Grounding with Google Search
+Response ready.
