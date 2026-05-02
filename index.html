@@ -26,9 +26,8 @@ select{background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:6
 .badge{font-size:11px;color:#64748b;background:#0f172a;padding:3px 10px;border-radius:12px}
 textarea{width:100%;min-height:280px;background:transparent;border:none;color:#e2e8f0;font-size:15px;padding:16px;resize:vertical;outline:none;font-family:inherit;line-height:1.7}
 textarea::placeholder{color:#475569}
-.output-area{min-height:280px;padding:16px;font-size:15px;line-height:1.7;overflow-y:auto;white-space:pre-wrap;color:#e2e8f0;flex:1}
+.output-area{min-height:280px;padding:16px;font-size:15px;line-height:1.7;overflow-y:auto;white-space:pre-wrap;color:#e2e8f0}
 .output-area .placeholder{color:#475569;font-style:italic}
-.output-area .loading{color:#64748b;font-style:italic;display:flex;align-items:center;gap:8px}
 .panel-footer{padding:10px 16px;border-top:1px solid #334155;font-size:12px;color:#64748b;display:flex;justify-content:space-between;align-items:center}
 .status{font-size:12px}
 .status.typing{color:#f59e0b}
@@ -52,47 +51,115 @@ textarea::placeholder{color:#475569}
 .remaining.danger{color:#ef4444}
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:#0f172a}
-::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}</style>
+::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+</style>
 </head>
 <body>
-<div class="loading" id="loadingOverlay"><div class="spinner"></div><div>Procesando...</div></div>
-<div class="banner error" id="errorBanner"></div>
+<div id="errorBanner" class="banner error"></div>
+<div id="loadingOverlay" class="loading"><div class="spinner"></div><p style="color:#94a3b8;font-size:14px">Corrigiendo...</p></div>
+
 <div class="container">
-<header><div class="logo"><div class="logo-icon">V</div>Verbaliax</div><div class="controls"><select id="langSelect"><option value="es">Espanol</option><option value="en">English</option></select><label class="toggle"><span id="lblTutor">Modo Tutor</span><input type="checkbox" id="tutorToggle"></label><button class="btn-sm" id="configBtn">Configurar API</button></div></header></body>
+<header>
+<div class="logo"><div class="logo-icon">V</div>Verbaliax</div>
+<div class="controls">
+<select id="langSelect"><option value="es">Espanol</option><option value="en">English</option></select>
+<label class="toggle"><span>Modo Tutor</span><input type="checkbox" id="tutorToggle"></label>
+<button class="btn-sm" id="configBtn">Configurar API</button>
+</div>
+</header>
+
+<div class="stats-bar">
+<span id="inputCount">0 palabras | 0 caracteres</span>
+<span class="remaining" id="quotaDisplay">Peticiones hoy: --</span>
+</div>
+
+<div class="panels">
+<div class="panel">
+<div class="panel-header"><h3>Borrador</h3><span class="badge">Escribe libremente</span></div>
+<textarea id="inputText" placeholder="Escribe tu texto aqui... El corrector trabajara automaticamente despues de 2 segundos de pausa."></textarea>
+<div class="panel-footer">
+<span id="typingStatus" class="status"></span>
+<div><button class="btn-sm" id="clearBtn">Limpiar</button><button class="btn-correct" id="correctNow">Corregir ahora</button></div>
+</div>
+</div>
+
+<div class="panel">
+<div class="panel-header"><h3>Texto Corregido</h3><div><button class="btn-sm" id="copyBtn">Copiar</button><button class="btn-sm" id="downloadBtn">Descargar</button></div></div>
+<div id="outputText" class="output-area"><span class="placeholder">El texto corregido aparecera aqui...</span></div>
+<div class="panel-footer"><span id="outputCount">0 palabras | 0 caracteres</span><span id="correctionStatus" class="status"></span></div>
+</div>
+</div>
+
+<div id="tutorPanel" style="margin-top:16px;display:none">
+<div class="panel">
+<div class="panel-header"><h3>Explicaciones del Tutor</h3></div>
+<div id="tutorContent" class="output-area" style="min-height:150px"><span class="placeholder">Las explicaciones apareceran aqui cuando actives el Modo Tutor y corrijas un texto.</span></div>
+</div>
+</div>
+</div>
+
 <script>
 (function(){
 'use strict';
-var CONFIG={MODEL:'gemini-2.5-flash',API_URL:'https://generativelanguage.googleapis.com/v1beta/models/',DEBOUNCE:2000,MIN_LEN:10,MAX_LEN:8000,DAILY_QUOTA:1500};
-var I18N={
-es:{lblTutor:'Modo Tutor',lblDraft:'Borrador',lblFreeWrite:'Escribe libremente',lblCorrected:'Texto Corregido',lblCorrectedPlaceholder:'El texto corregido aparecera aqui...',lblTutorTitle:'Explicaciones del Tutor',lblTutorPlaceholder:'Las explicaciones apareceran aqui cuando actives el Modo Tutor y corrijas un texto.',btnClear:'Limpiar',btnCorrectNow:'Corregir ahora',btnCopy:'Copiar',btnDownload:'Descargar',btnConfigAPI:'Configurar API',statTyping:'Escribiendo...',statCorrected:'Corregido',statError:'Error',statCopied:'Copiado!',phInput:'Escribe tu texto aqui... El corrector trabajara automaticamente despues de 2 segundos de pausa.',phCorrected:'El texto corregido aparecera aqui...',phTutor:'Las explicaciones apareceran aqui cuando actives el Modo Tutor y corrijas un texto.',limitChars:'Caracteres restantes: ',errQuota:'Has alcanzado el limite de 1500 peticiones diarias.',errLong:'Texto demasiado largo. Maximo 8000 caracteres.',errKey:'API key invalida. Verifica tu clave.',errAPI:'Error de conexion. Reintenta en unos minutos.',errConn:'Error de conexion. Verifica tu internet o reintenta.',errResp:'Respuesta invalida de la API. Reintenta.',errQuotaZero:'Cuota de API agotada. Obtén una nueva API key gratuita en aistudio.google.com',appLoad:'Procesando...'},
-en:{lblTutor:'Tutor Mode',lblDraft:'Draft',lblFreeWrite:'Free writing',lblCorrected:'Corrected Text',lblCorrectedPlaceholder:'The corrected text will appear here...',lblTutorTitle:'Tutor Explanations',lblTutorPlaceholder:'Explanations will appear here when you activate Tutor Mode and correct a text.',btnClear:'Clear',btnCorrectNow:'Correct now',btnCopy:'Copy',btnDownload:'Download',btnConfigAPI:'Configure API',statTyping:'Typing...',statCorrected:'Corrected',statError:'Error',statCopied:'Copied!',phInput:'Type your text here... The corrector will work automatically after 2 seconds of pause.',phCorrected:'The corrected text will appear here...',phTutor:'Explanations will appear here when you activate Tutor Mode and correct a text.',limitChars:'Characters remaining: ',errQuota:'You have reached the limit of 1500 daily requests.',errLong:'Text too long. Maximum 8000 characters.',errKey:'Invalid API key. Check your key.',errAPI:'Connection error. Retry in a few minutes.',errConn:'Connection error. Check your internet or retry.',errResp:'Invalid API response. Retry.',errQuotaZero:'API quota exhausted. Get a new free API key at aistudio.google.com',appLoad:'Processing...'}};
-var state={key:localStorage.getItem('vx_api_key')||'',lang:localStorage.getItem('vx_lang')||'es',tutor:localStorage.getItem('vx_tutor')==='1',timer:null,processing:false,requestsToday:parseInt(localStorage.getItem('vx_req_today')||'0'),lastDate:localStorage.getItem('vx_req_date')||''};
-var el={};function $(id){return document.getElementById(id)}
-function t(k){return I18N[state.lang][k]||I18N.es[k]||k}
-function updateUI(){var t=I18N[state.lang];$('tutorToggle').checked=tutorState();$('lblTutor').textContent=t.lblTutor;$('lblDraft').textContent=t.lblDraft;$('lblFreeWrite').textContent=t.lblFreeWrite;$('lblCorrected').textContent=t.lblCorrected;$('lblCorrectedPlaceholder').textContent=t.phCorrected;$('lblTutorTitle').textContent=t.lblTutorTitle;$('lblTutorPlaceholder').textContent=t.phTutor;$('clearBtn').textContent=t.btnClear;$('correctNow').textContent=t.btnCorrectNow;$('copyBtn').textContent=t.btnCopy;$('downloadBtn').textContent=t.btnDownload;$('configBtn').textContent=t.btnConfigAPI;$('inputText').placeholder=t.phInput;$('loadingOverlay').lastChild.textContent=t.appLoad;$('tutorPanel').style.display=tutorState()?'block':'none';$('quotaDisplay').textContent=t.limitChars+(CONFIG.DAILY_QUOTA-state.requestsToday)+t('');updateQuotaDisplay();updateCharDisplay();}
-function t2(s){var n=CONFIG.DAILY_QUOTA-state.requestsToday;return s+n}
-function tutorState(){if(localStorage.getItem('vx_tutor')==='1'){$('tutorToggle').checked=true;return true}return false}
-function updateCharDisplay(){$('charLimitDisplay').textContent=t('limitChars')+(CONFIG.MAX_LEN-el.input.value.length)}
-function updateQuotaDisplay(){var today=new Date().toDateString();if(state.lastDate!==today){state.requestsToday=0;state.lastDate=today;localStorage.setItem('vx_req_date',today);localStorage.setItem('vx_req_today','0')}var remaining=CONFIG.DAILY_QUOTA-state.requestsToday;$('quotaDisplay').textContent=t('limitChars')+remaining;$('quotaDisplay').className='remaining '+(remaining<300?'danger':remaining<800?'warning':'')}
-function trackRequest(){state.requestsToday++;localStorage.setItem('vx_req_today',String(state.requestsToday));updateQuotaDisplay()}
-function init(){el.input=$('inputText');el.output=$('outputText');el.inputCount=$('inputCount');el.outputCount=$('outputCount');el.typing=$('typingStatus');el.status=$('correctionStatus');el.tutorToggle=$('tutorToggle');el.tutorPanel=$('tutorPanel');el.tutorContent=$('tutorContent');el.lang=$('langSelect');el.loading=$('loadingOverlay');el.banner=$('errorBanner');el.quota=$('quotaDisplay');el.charLimit=$('charLimitDisplay');el.lang.value=state.lang;updateUI();if(!state.key)askForKey();el.lang.addEventListener('change',function(){state.lang=this.value;localStorage.setItem('vx_lang',state.lang);updateUI()});el.tutorToggle.addEventListener('change',function(){state.tutor=this.checked;localStorage.setItem('vx_tutor',this.checked?'1':'0');el.tutorPanel.style.display=this.checked?'block':'none'});$('configBtn').addEventListener('click',askForKey);$('clearBtn').addEventListener('click',function(){el.input.value='';updateCharDisplay();updateCounts();el.output.innerHTML='<span class="placeholder">'+t('phCorrected')+'</span>';el.outputCount.textContent='0 palabras | 0 caracteres';el.tutorContent.innerHTML='<span class="placeholder">'+t('phTutor')+'</span>'});$('correctNow').addEventListener('click',correct);$('copyBtn').addEventListener('click',copyOutput);$('downloadBtn').addEventListener('click',downloadOutput);el.input.addEventListener('input',function(){updateCounts();updateCharDisplay();debounceCorrect()});updateCounts();updateCharDisplay();}
-function askForKey(){var key=prompt(t('lblCorrected').replace('Texto Corregido','Ingresa tu API key de Google Gemini (gratuita en aistudio.google.com):'),state.key||'');key=prompt('Ingresa tu API key de Google Gemini (gratuita en aistudio.google.com):',state.key||'');if(key&&key.trim()){key=key.trim();if(key.indexOf('AIza')!==0){showError(t('errKey'));return}state.key=key;localStorage.setItem('vx_api_key',key);showError('')}}
-function updateCounts(){var t=el.input.value;var w=t.trim()?t.trim().split(/\s+/).length:0;var c=t.length;el.inputCount.textContent=w+' palabras | '+c+' caracteres'}
-function updateOutputCounts(txt){var w=txt.trim()?txt.trim().split(/\s+/).length:0;var c=txt.length;el.outputCount.textContent=w+' palabras | '+c+' caracteres'}
-function debounceCorrect(){clearTimeout(state.timer);el.typing.textContent=t('statTyping');el.typing.className='status typing';state.timer=setTimeout(function(){el.typing.textContent='';correct()},CONFIG.DEBOUNCE)}
-function showError(msg){if(!msg){el.banner.className='banner error';el.banner.textContent='';return}el.banner.textContent=msg;el.banner.className='banner error show';setTimeout(function(){el.banner.className='banner error'},5000)}
-function setLoading(show){el.loading.className=show?'loading show':'loading'}
-async function correct(){var text=el.input.value.trim();if(!text||text.length<CONFIG.MIN_LEN)return;if(text.length>CONFIG.MAX_LEN){showError(t('errLong'));return}if(!state.key){askForKey();return}if(state.processing)return;if(state.requestsToday>=CONFIG.DAILY_QUOTA){showError(t('errQuota'));return}state.processing=true;setLoading(true);el.status.textContent=t('statTyping');var prompt=buildPrompt(text);try{var url=CONFIG.API_URL+CONFIG.MODEL+':generateContent?key='+state.key;var res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:4096,topP:0.9}})};if(!res.ok){var err=await res.json().catch(function(){return{}});var msg=err.error&&err.error.message?err.error.message:'Error '+res.status;if(msg.indexOf('quota')!==-1||msg.indexOf('exceeded')!==-1||msg.indexOf('limit')!==-1){showError(t('errQuotaZero'))}else if(res.status===400){showError(t('errKey'))}else{showError(t('errAPI'))}console.error('API error:',msg);return}var data=await res.json();if(!data.candidates||!data.candidates[0]||!data.candidates[0].content){showError(t('errResp'));return}var raw=data.candidates[0].content.parts[0].text||'';var result=parseResult(raw);displayResult(result);trackRequest();el.status.textContent=t('statCorrected');el.status.className='status success';setTimeout(function(){el.status.textContent='';el.status.className='status'},2000);}catch(e){console.error(e);showError(t('errConn'))}finally{state.processing=false;setLoading(false)}}
-function buildPrompt(text){var isEs=state.lang==='es';if(state.tutor){return(isEs?'Eres un tutor de escritura academica. Corrige los errores del texto y EXPLICA brevemente cada error encontrado en formato lista. Maximo 5 explicaciones, breves (1 linea cada una). Responde en este formato exacto:\n\nTEXTO_CORREGIDO:\n[texto corregido]\n\nEXPLICACIONES:\n[explicacion]\n[explicacion]\n\nTexto a corregir:\n"""'+text+'"""':'You are an academic writing tutor. Correct the errors in the text and BRIEFLY explain each error found in list format. Maximum 5 explanations, brief (1 line each). Respond in this exact format:\n\nCORRECTED_TEXT:\n[corrected text]\n\nEXPLANATIONS:\n[explanation]\n[explanation]\n\nText to correct:\n"""'+text+'"""')}return(isEs?'Eres un corrector gramatical academico. Corrige SOLO errores de ortografia, puntuacion y gramatica del siguiente texto. Responde APENAS con el texto corregido, sin explicaciones, sin introduccion.\n\nTexto a corregir:\n"""'+text+'"""':'You are an academic grammar corrector. Fix ONLY spelling, punctuation and grammar errors in the following text. Respond ONLY with the corrected text, no explanations, no introduction.\n\nText to correct:\n"""'+text+'"""')}
+var CONFIG={MODEL:'gemini-2.5-flash',API_URL:'https://generativelanguage.googleapis.com/v1beta/models/',DEBOUNCE:2000,MIN_LEN:10,MAX_LEN:8000};
+var state={key:localStorage.getItem('vx_api_key')||'',lang:localStorage.getItem('vx_lang')||'es',tutor:false,timer:null,processing:false,requestsToday:parseInt(localStorage.getItem('vx_req_today')||'0'),lastDate:localStorage.getItem('vx_req_date')||''};
+var el={};
+function $(id){return document.getElementById(id)}
+function init(){
+el.input=$('inputText');el.output=$('outputText');el.inputCount=$('inputCount');el.outputCount=$('outputCount');el.typing=$('typingStatus');el.status=$('correctionStatus');el.tutorToggle=$('tutorToggle');el.tutorPanel=$('tutorPanel');el.tutorContent=$('tutorContent');el.lang=$('langSelect');el.loading=$('loadingOverlay');el.banner=$('errorBanner');el.quota=$('quotaDisplay');
+el.lang.value=state.lang;updateQuotaDisplay();
+if(!state.key)askForKey();
+el.lang.addEventListener('change',function(){state.lang=this.value;localStorage.setItem('vx_lang',state.lang)});
+el.tutorToggle.addEventListener('change',function(){state.tutor=this.checked;el.tutorPanel.style.display=state.tutor?'block':'none'});
+$('configBtn').addEventListener('click',askForKey);
+$('clearBtn').addEventListener('click',function(){el.input.value='';updateCounts();el.output.innerHTML='<span class="placeholder">El texto corregido aparecera aqui...</span>';el.tutorContent.innerHTML='<span class="placeholder">Las explicaciones apareceran aqui...</span>'});
+$('correctNow').addEventListener('click',correct);
+$('copyBtn').addEventListener('click',copyOutput);
+$('downloadBtn').addEventListener('click',downloadOutput);
+el.input.addEventListener('input',function(){updateCounts();debounceCorrect()});
+updateCounts();
+}
+function askForKey(){
+var key=prompt('Ingresa tu API key de Google Gemini (gratuita en aistudio.google.com):',state.key||'');
+if(key&&key.trim()){key=key.trim();if(key.indexOf('AIza')!==0){showError('La API key debe empezar con AIza...');return}state.key=key;localStorage.setItem('vx_api_key',key);showError('');}
+}
+function updateCounts(){var t=el.input.value;var w=t.trim()?t.trim().split(/\s+/).length:0;var c=t.length;el.inputCount.textContent=w+' palabras | '+c+' caracteres';}
+function updateOutputCounts(text){var w=text.trim()?text.trim().split(/\s+/).length:0;var c=text.length;el.outputCount.textContent=w+' palabras | '+c+' caracteres';}
+function updateQuotaDisplay(){var today=new Date().toDateString();if(state.lastDate!==today){state.requestsToday=0;state.lastDate=today;localStorage.setItem('vx_req_date',today);localStorage.setItem('vx_req_today','0')}var remaining=1500-state.requestsToday;el.quota.textContent='Peticiones hoy: '+remaining;el.quota.className='remaining '+(remaining<300?'danger':remaining<800?'warning':'')}
+function trackRequest(){state.requestsToday++;localStorage.setItem('vx_req_today',String(state.requestsToday));updateQuotaDisplay();}
+function debounceCorrect(){clearTimeout(state.timer);el.typing.textContent='Escribiendo...';el.typing.className='status typing';state.timer=setTimeout(function(){el.typing.textContent='';correct()},CONFIG.DEBOUNCE);}
+function showError(msg){if(!msg){el.banner.className='banner error';el.banner.textContent='';return}el.banner.textContent=msg;el.banner.className='banner error show';setTimeout(function(){el.banner.className='banner error'},5000);}
+function setLoading(show){el.loading.className=show?'loading show':'loading';}
+async function correct(){
+var text=el.input.value.trim();
+if(!text||text.length<CONFIG.MIN_LEN)return;
+if(text.length>CONFIG.MAX_LEN){showError('Texto demasiado largo. Maximo 8000 caracteres.');return}
+if(!state.key){askForKey();return}
+if(state.processing)return;
+if(state.requestsToday>=1500){showError('Has alcanzado el limite de 1500 peticiones diarias.');return}
+state.processing=true;setLoading(true);el.status.textContent='Corrigiendo...';
+var prompt=buildPrompt(text);
+try{
+var url=CONFIG.API_URL+CONFIG.MODEL+':generateContent?key='+state.key;
+var res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:4096,topP:0.9}})});
+if(!res.ok){var err=await res.json().catch(function(){return{}});var msg=err.error&&err.error.message?err.error.message:'Error '+res.status;if(msg.indexOf('quota')!==-1||msg.indexOf('exceeded')!==-1||msg.indexOf('limit')!==-1){showError('Cuota de API agotada. Obtén una nueva API key gratuita en aistudio.google.com')}else if(res.status===400){showError('API key invalida. Verifica tu clave.')}else{showError('Error de conexion. Reintenta en unos minutos.')}console.error('API error:',msg);return}
+var data=await res.json();
+if(!data.candidates||!data.candidates[0]||!data.candidates[0].content){showError('Respuesta invalida de la API. Reintenta.');return}
+var raw=data.candidates[0].content.parts[0].text||'';
+var result=parseResult(raw);
+displayResult(result);trackRequest();el.status.textContent='Corregido';el.status.className='status success';setTimeout(function(){el.status.textContent='';el.status.className='status'},2000);
+}catch(e){console.error(e);showError('Error de conexion. Verifica tu internet o reintenta.')}
+finally{state.processing=false;setLoading(false)}
+}
+function buildPrompt(text){var isEs=state.lang==='es';if(state.tutor){return(isEs?'Eres un tutor de escritura academica. Corrige los errores del texto y EXPLICA brevemente cada error encontrado en formato lista numerada. Maximo 5 explicaciones, breves (1 linea cada una). Responde en este formato exacto:\n\nTEXTO_CORREGIDO:\n[texto corregido]\n\nEXPLICACIONES:\n1. [explicacion]\n2. [explicacion]\n\nTexto a corregir:\n"""'+text+'"""':'You are an academic writing tutor. Correct the errors in the text and BRIEFLY explain each error found in numbered list format. Maximum 5 explanations, brief (1 line each). Respond in this exact format:\n\nCORRECTED_TEXT:\n[corrected text]\n\nEXPLANATIONS:\n1. [explanation]\n2. [explanation]\n\nText to correct:\n"""'+text+'"""')}
+return(isEs?'Eres un corrector gramatical academico. Corrige SOLO errores de ortografia, puntuacion y gramatica del siguiente texto. Responde APENAS con el texto corregido, sin explicaciones, sin introduccion.\n\nTexto a corregir:\n"""'+text+'"""':'You are an academic grammar corrector. Fix ONLY spelling, punctuation and grammar errors in the following text. Respond ONLY with the corrected text, no explanations, no introduction.\n\nText to correct:\n"""'+text+'"""')}
 function parseResult(raw){var isEs=state.lang==='es';var marker=isEs?'TEXTO_CORREGIDO:':'CORRECTED_TEXT:';var expMarker=isEs?'EXPLICACIONES':'EXPLANATIONS';var corrected='';var explanations=[];var idx=raw.indexOf(marker);if(idx!==-1){var after=raw.substring(idx+marker.length);var eIdx=after.indexOf(expMarker);corrected=eIdx!==-1?after.substring(0,eIdx).trim():after.trim()}else{corrected=raw.trim()}if(state.tutor){var eIdx2=raw.indexOf(expMarker);if(eIdx2!==-1){var expText=raw.substring(eIdx2+expMarker.length).trim();var lines=expText.split('\n').map(function(l){return l.trim()}).filter(function(l){return l.length>5});explanations=lines.slice(0,5)}}return{corrected:corrected||raw,explanations:explanations}}
-function displayResult(result){el.output.textContent=result.corrected;updateOutputCounts(result.corrected);if(state.tutor&&result.explanations.length>0){el.tutorContent.innerHTML=result.explanations.map(function(e,i){return'<div style="margin-bottom:10px;padding:10px;background:#0f172a;border-radius:6px;border-left:3px solid #6366f1"><strong>'+(i+1)+'.</strong> '+escapeHtml(e)+'</div>'}).join('')}else if(state.tutor){el.tutorContent.innerHTML='<span class="placeholder">'+t('phTutor')+'</span>'}}
+function displayResult(result){el.output.textContent=result.corrected;updateOutputCounts(result.corrected);if(state.tutor&&result.explanations.length>0){el.tutorContent.innerHTML=result.explanations.map(function(e,i){return'<div style="margin-bottom:10px;padding:10px;background:#0f172a;border-radius:6px;border-left:3px solid #6366f1"><strong>'+(i+1)+'.</strong> '+escapeHtml(e)+'</div>'}).join('')}else if(state.tutor){el.tutorContent.innerHTML='<span class="placeholder">No se encontraron errores significativos para explicar.</span>'}}
 function escapeHtml(text){var d=document.createElement('div');d.textContent=text;return d.innerHTML}
-function copyOutput(){var t=el.output.textContent;if(!t||t.indexOf('aparecera')!==-1||t.indexOf('corrected text will appear')!==-1)return;navigator.clipboard.writeText(t).then(function(){var old=el.status.textContent;el.status.textContent=t('statCopied');el.status.className='status success';setTimeout(function(){el.status.textContent=old},1500)})}
-function downloadOutput(){var t=el.output.textContent;if(!t||t.indexOf('aparecera')!==-1||t.indexOf('corrected text will appear')!==-1)return;var b=new Blob([t],{type:'text/plain'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='verbaliax-correccion.txt';a.click();URL.revokeObjectURL(u)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();})();
+function copyOutput(){var t=el.output.textContent;if(!t||t.indexOf('aparecera')!==-1)return;navigator.clipboard.writeText(t).then(function(){var old=el.status.textContent;el.status.textContent='Copiado!';el.status.className='status success';setTimeout(function(){el.status.textContent=old},1500)})}
+function downloadOutput(){var t=el.output.textContent;if(!t||t.indexOf('aparecera')!==-1)return;var b=new Blob([t],{type:'text/plain'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='verbaliax-correccion.txt';a.click();URL.revokeObjectURL(u)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script>
+</body>
 </html>
-<div class="stats-bar"><span id="charLimitDisplay"></span><span id="quotaDisplay" class="remaining">Peticiones hoy: --</span></div>
-<div class="panels"><div class="panel"><div class="panel-header"><h3 id="lblDraft">Borrador</h3><span class="badge" id="lblFreeWrite">Escribe libremente</span></div><textarea id="inputText" placeholder="Escribe tu texto aqui... El corrector trabajara automaticamente despues de 2 segundos de pausa."></textarea><div class="panel-footer"><span class="status" id="typingStatus"></span><span><button class="btn-sm" id="clearBtn">Limpiar</button><button class="btn-correct" id="correctNow">Corregir ahora</button></span></div></div><div class="panel"><div class="panel-header"><h3 id="lblCorrected">Texto Corregido</h3><span><button class="btn-sm" id="copyBtn">Copiar</button><button class="btn-sm" id="downloadBtn">Descargar</button></span></div><div class="output-area" id="outputText"><span class="placeholder" id="lblCorrectedPlaceholder">El texto corregido aparecera aqui...</span></div><div class="panel-footer"><span class="status" id="correctionStatus"></span><span id="outputCount">0 palabras | 0 caracteres</span></div></div></div>
-<div class="panel" id="tutorPanel" style="display:none;margin-top:16px"><div class="panel-header"><h3 id="lblTutorTitle">Explicaciones del Tutor</h3></div><div class="output-area" id="tutorContent"><span class="placeholder" id="lblTutorPlaceholder">Las explicaciones apareceran aqui cuando actives el Modo Tutor y corrijas un texto.</span></div></div>
-</div>
