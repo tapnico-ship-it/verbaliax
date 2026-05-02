@@ -102,7 +102,7 @@ textarea::placeholder{color:#475569}
 (function(){
 'use strict';
 var CONFIG={MODEL:'gemini-2.5-flash',API_URL:'https://generativelanguage.googleapis.com/v1beta/models/',DEBOUNCE:2000,MIN_LEN:10,MAX_LEN:8000};
-var state={key:localStorage.getItem('vx_api_key')||'',lang:localStorage.getItem('vx_lang')||'es',tutor:false,timer:null,processing:false,requestsToday:parseInt(localStorage.getItem('vx_req_today')||'0'),lastDate:localStorage.getItem('vx_req_date')||''};
+var state={key,lang:localStorage.getItem('vx_lang')||'es',tutor:false,timer:null,processing:false,requestsToday:parseInt(localStorage.getItem('vx_req_today')||'0'),lastDate:localStorage.getItem('vx_req_date')||''};
 var el={};
 function $(id){return document.getElementById(id)}
 function init(){
