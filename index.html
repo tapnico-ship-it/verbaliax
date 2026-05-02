@@ -120,7 +120,7 @@ el.input.addEventListener('input',function(){updateCounts();debounceCorrect()});
 updateCounts();
 }
 function askForKey(){
-var key=p='AIzaSyBBxAnzj/P2g9tTww6ZcFPhbsQbaQItAg';
+var key=p'IzaSyBBxAnzj/P2g9tTww6ZcFPhbsQbaQItAg';
 if(key&&key.trim()){key=key.trim();if(key.indexOf('AIza')!==0){showError('La API key debe empezar con AIza...');return}state.key=key;localStorage.setItem('vx_api_key',key);showError('');}
 }
 function updateCounts(){var t=el.input.value;var w=t.trim()?t.trim().split(/\s+/).length:0;var c=t.length;el.inputCount.textContent=w+' palabras | '+c+' caracteres';}
