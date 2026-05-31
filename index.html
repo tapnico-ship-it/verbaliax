@@ -1,325 +1,1751 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verbaliax | Corrector Académico</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verbaliax — Tutor de Escritura Académica</title>
+  <meta name="description" content="Verbaliax es un corrector y tutor de escritura académica con IA. Usa tu propia clave de API de Gemini (BYOK) para corregir textos con estándares APA 7." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet" />
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #0f172a;
-      color: #e2e8f0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      min-height: 100vh;
-      padding: 20px;
+    /* ============================================================
+       DESIGN TOKENS — Light Theme minimalista (estilo Google Docs / e-reader)
+       ============================================================ */
+    :root {
+      /* Fondos */
+      --bg-base:        #003BFF;   /* Azul Rey (Principal/Fondo) */
+      --bg-surface:     #ffffff;   /* blanco puro — paneles principales */
+      --bg-panel:       #ffffff;   /* panel genérico */
+      --bg-panel-alt:   #f1f3f4;   /* cabeceras de panel */
+      --bg-paper:       #ffffff;   /* blanco puro para historial */
+
+      /* Bordes */
+      --border:         #e0e0e0;   /* borde gris sutil */
+      --border-focus:   #72E7FF;   /* borde foco (Cian Brillante) */
+
+      /* Textos */
+      --text-primary:   #202124;   /* casi negro — máximo contraste */
+      --text-secondary: #5f6368;   /* gris medio */
+      --text-muted:     #9aa0a6;   /* gris claro — metadatos */
+
+      /* Acentos */
+      --accent-blue:    #4f6ef7;
+      --accent-violet:  #8b5cf6;
+      --accent-teal:    #0d9488;
+
+      /* Error annotation colors — saturación media, legibles en blanco */
+      --err-spelling:       #d93025;  /* Rojo Google */
+      --err-grammar:        #1a73e8;  /* Azul Google */
+      --err-punctuation:    #e37400;  /* Naranja ámbar oscuro */
+      --err-style:          #188038;  /* Verde bosque */
+      --err-capitalization: #9334e9;  /* Violeta Google */
+
+      --radius-sm:  0;
+      --radius-md:  0;
+      --radius-lg:  0;
+
+      --shadow-card:  none;
+      --shadow-panel: none;
+      --shadow-glow:  0 0 0 3px rgba(114,231,255,0.25);
+      --transition:   0.18s ease;
     }
-    .container { max-width: 1200px; margin: 0 auto; }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
-      gap: 20px;
+
+    /* ============================================================
+       RESET & BASE
+       ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      box-shadow: none !important;
     }
-    h1 {
-      font-size: 28px;
-      font-weight: 600;
-      color: #60a5fa;
+
+    *:not(.legend-dot):not(.panel-dot):not(#btn-process):not(.spinner) {
+      border-radius: 0 !important;
     }
-    .quota {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 500;
-      color: #60a5fa;
-    }
-    .quota.warning { color: #f97316; }
-    .quota.error { color: #ef4444; }
-    #api-key {
-      padding: 10px 15px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      color: #e2e8f0;
-      width: 280px;
+
+    html, body {
+      height: 100%;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, sans-serif;
       font-size: 14px;
+      line-height: 1.6;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    .main {
+
+    /* ============================================================
+       APP LAYOUT — CSS Grid asimétrico estilo IDE/editor profesional
+       ============================================================ */
+    #app {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-    .panel {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-    }
-    .panel h2 {
-      font-size: 16px;
-      margin-bottom: 15px;
-      color: #cbd5e1;
-    }
-    textarea {
-      flex: 1;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 4px;
+      grid-template-areas:
+        "header     header"
+        "final-doc  tutor-history"
+        "input-area input-area";
+      grid-template-columns: 1.618fr 1fr;
+      grid-template-rows: auto 1fr auto;
+      height: 100vh;
       padding: 12px;
-      color: #e2e8f0;
-      resize: none;
-      font-family: monospace;
-      font-size: 14px;
-      min-height: 300px;
-    }
-    textarea:focus { outline: none; border-color: #60a5fa; }
-    .buttons {
-      display: flex;
       gap: 10px;
-      margin-top: 15px;
     }
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      font-weight: 500;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.3s;
+
+    #app.swap-layout {
+      grid-template-areas:
+        "header        header"
+        "tutor-history final-doc"
+        "input-area    input-area";
     }
-    button:hover:not(:disabled) { transform: translateY(-2px); }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+
+    /* Cabecera de app */
+    #app-header {
+      grid-area: header;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px 4px;
+      flex-shrink: 0;
     }
-    .btn-primary {
-      background: #60a5fa;
-      color: white;
-      flex: 1;
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .btn-primary:hover:not(:disabled) { background: #3b82f6; }
-    .btn-secondary {
-      background: #475569;
-      color: white;
-    }
-    .btn-secondary:hover { background: #334155; }
-    .maintenance {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.9);
-      z-index: 9999;
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-violet));
+      border-radius: 8px;
+      display: flex;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-    }
-    .maintenance.active { display: flex; }
-    .maintenance-content {
-      text-align: center;
-      background: #1e293b;
-      padding: 40px;
-      border-radius: 12px;
-      border: 2px solid #f97316;
-    }
-    .maintenance h2 {
-      font-size: 32px;
-      color: #f97316;
-      margin-bottom: 20px;
-    }
-    .maintenance p {
       font-size: 16px;
-      color: #cbd5e1;
-      margin-bottom: 10px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -1px;
     }
-    @media (max-width: 768px) {
-      .main { grid-template-columns: 1fr; }
-      header { flex-direction: column; }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-tagline {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    /* Controles de la cabecera */
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .style-selector-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffffff;
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    #style-select {
+      background: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: var(--text-primary);
+      padding: 5px 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    #btn-toggle-layout, #btn-reset-key {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: #ffffff;
+      padding: 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: 'Inter', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #btn-reset-key {
+      display: none; /* Controlado dinámicamente por JS */
+    }
+
+    #btn-toggle-layout:hover, #btn-reset-key:hover {
+      background: rgba(114, 231, 255, 0.15);
+      border-color: #72E7FF;
+      color: #72E7FF;
+    }
+
+    /* ============================================================
+       PANEL GENÉRICO
+       ============================================================ */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-top: 4px solid #72E7FF;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--bg-panel-alt);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .panel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50% !important;
+      display: inline-block;
+    }
+    .dot-green  { background: #188038; }
+    .dot-blue   { background: #1a73e8; }
+    .dot-violet { background: #9334e9; }
+
+    /* ============================================================
+       PANEL 1 — DOCUMENTO FINAL (columna izquierda principal)
+       ============================================================ */
+    #panel-final {
+      grid-area: final-doc;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #final-document-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 28px;
+      min-height: 0;
+    }
+
+    /* Tipografía APA 7ª edición — Merriweather para lectura académica premium */
+    .apa-paragraph {
+      font-family: 'Merriweather', 'Times New Roman', Georgia, serif;
+      font-size: 12pt;
+      font-weight: 300;
+      line-height: 2;           /* doble espacio APA */
+      text-indent: 0.5in;       /* sangría primera línea */
+      color: var(--text-primary);
+      margin-bottom: 0;         /* APA: sin espacio extra entre párrafos */
+      letter-spacing: 0.01em;
+    }
+
+    /* Estado vacío del panel */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 8px;
+    }
+    .empty-state-icon { font-size: 32px; opacity: 0.4; }
+    .empty-state-text { font-size: 13px; }
+
+    /* Botones de acción en cabecera de panel */
+    #btn-copy, #btn-clear {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 5px 14px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #btn-copy:hover {
+      border-color: var(--accent-teal);
+      color: var(--accent-teal);
+    }
+    #btn-copy.copied {
+      border-color: var(--accent-teal);
+      color: var(--accent-teal);
+    }
+    #btn-clear:hover {
+      border-color: #d32f2f;
+      color: #d32f2f;
+      background: rgba(211, 47, 47, 0.05);
+    }
+
+    /* Panel 2 fondo papel cálido + scroll */
+    #panel-tutor {
+      grid-area: tutor-history;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--bg-paper);
+    }
+
+    #tutor-history {
+      flex: 1;
+      overflow-y: scroll;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    /* Tarjetas del historial — blanco sobre fondo papel, borde fino */
+    .history-entry {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      animation: fadeInUp 0.3s ease;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .history-entry:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transform: translateY(-1px);
+    }
+
+    .history-entry-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Error spans — palabras subrayadas con color */
+    .error-word {
+      border-bottom: 2px solid currentColor;
+      cursor: pointer;
+      border-radius: 2px;
+      padding: 0 1px;
+      transition: background var(--transition);
+    }
+    .error-word:hover { background: rgba(0,0,0,0.05); }
+
+    .error-spelling       { color: var(--err-spelling); }
+    .error-grammar        { color: var(--err-grammar); }
+    .error-punctuation    { color: var(--err-punctuation); }
+    .error-style          { color: var(--err-style); }
+    .error-capitalization { color: var(--err-capitalization); }
+
+    /* Leyenda de colores */
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-secondary);
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50% !important;
+    }
+
+    /* ============================================================
+       TARJETA EXPLICATIVA (Tooltip/Modal flotante)
+       ============================================================ */
+    #explanation-card {
+      position: fixed;
+      z-index: 1000;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      max-width: 280px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      display: none;
+      animation: popIn 0.15s ease;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    .card-error-type {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+    .card-original {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .card-corrected {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .card-rule {
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      line-height: 1.5;
+    }
+    .card-close {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 5px;
+    }
+    .card-close:hover { color: var(--text-primary); }
+
+    /* ============================================================
+       PANEL 3 — CAJA DE INGRESO (banda inferior, ancho completo)
+       ============================================================ */
+    #panel-input {
+      grid-area: input-area;
+      min-height: 130px;
+      max-height: 200px;
+    }
+
+    #panel-input .panel-content {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    /* --- Sección API Key --- */
+    #api-key-section {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #api-key-section label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    #input-api-key {
+      flex: 1;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    #input-api-key:focus {
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-glow);
+    }
+    #input-api-key::placeholder { color: var(--text-muted); }
+
+    #btn-save-key {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-violet));
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+      transition: opacity var(--transition);
+    }
+    #btn-save-key:hover { opacity: 0.88; }
+
+    /* --- Sección de texto (interfaz normal) --- */
+    #text-input-section {
+      display: none;
+      gap: 8px;
+      align-items: flex-end;
+      flex: 1;
+    }
+
+    #draft-textarea {
+      flex: 1;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'Merriweather', Georgia, serif;
+      font-weight: 300;
+      resize: vertical;
+      min-height: 56px;
+      max-height: 130px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      line-height: 1.7;
+    }
+    #draft-textarea:focus {
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-glow);
+    }
+    #draft-textarea::placeholder { color: var(--text-muted); }
+
+    #btn-process {
+      background: #72E7FF;
+      border: none;
+      color: #003BFF;
+      font-weight: bold;
+      border-radius: 24px !important; /* Estilo píldora moderno */
+      padding: 0 22px;
+      height: 56px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+      transition: opacity var(--transition), transform var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #btn-process:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    #btn-process:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* Spinner de carga */
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0, 59, 255, 0.2);
+      border-top-color: #003BFF;
+      border-radius: 50% !important;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .spinner.active { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================================
+       RESPONSIVE — Mobile/Tablet (≤ 900px): apilado vertical
+       ============================================================ */
+    @media (max-width: 900px) {
+      #app {
+        grid-template-areas:
+          "header"
+          "final-doc"
+          "tutor-history"
+          "input-area";
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr 1fr auto;
+        overflow-y: auto;
+      }
+
+      #app.swap-layout {
+        grid-template-areas:
+          "header"
+          "tutor-history"
+          "final-doc"
+          "input-area";
+      }
+
+      #panel-final,
+      #panel-tutor {
+        min-height: 280px;
+      }
+
+      #panel-input {
+        max-height: none;
+      }
+    }
+
+    /* Scrollbar personalizada */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* Notificación toast */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: var(--bg-panel-alt);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      z-index: 2000;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      opacity: 0;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* GLOSARIO GRAMATICAL — estilo e-reader de gama alta */
+    .glossary-term {
+      color: #6366f1;  /* Índigo moderno */
+      text-decoration: underline dotted;
+      text-underline-offset: 3px;
+      cursor: help;
+      font-weight: 500;
+      transition: text-shadow 0.2s ease;
+    }
+    .glossary-term:hover {
+      text-shadow: 0 0 8px rgba(99, 102, 241, 0.55), 0 0 20px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Tooltip anidado para definición del glosario */
+    #glossary-tooltip {
+      position: fixed;
+      z-index: 1100;
+      background: #0d0f14;
+      border: 1px solid var(--accent-blue);
+      border-radius: var(--radius-sm);
+      padding: 10px 13px;
+      max-width: 230px;
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      display: none;
+      animation: popIn 0.12s ease;
+    }
+    #glossary-tooltip strong {
+      display: block;
+      font-size: 12px;
+      color: var(--accent-blue);
+      margin-bottom: 4px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>🙋 Verbaliax</h1>
-      <div class="quota" id="quota-display">CUOTA: 0/1500</div>
-      <input type="text" id="api-key" placeholder="Gemini API Key">
-    </header>
 
-    <div class="main">
-      <div class="panel">
-        <h2>Borrador Original</h2>
-        <textarea id="input-text" placeholder="Escribe tu texto aquí..."></textarea>
-        <div class="buttons">
-          <button class="btn-secondary" onclick="clearText()">Limpiar</button>
-          <button class="btn-primary" id="correct-btn" onclick="processText()">Mejorar Texto</button>
-        </div>
+<!-- ============================================================
+     ESTRUCTURA HTML — SPA Verbaliax
+     ============================================================ -->
+<div id="app">
+
+  <!-- CABECERA -->
+  <header id="app-header">
+    <div class="brand-logo" style="display: flex; align-items: center; gap: 12px;">
+      <svg viewBox="0 0 100 100" width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+        <!-- Cuerpo principal en Blanco -->
+        <path d="M50 10 L80 60 L70 80 L30 80 L20 60 Z" fill="#FFFFFF"/>
+        <!-- Corte central y orificio (Azul Rey para simular transparencia) -->
+        <circle cx="50" cy="55" r="7" fill="#003BFF"/>
+        <line x1="50" y1="10" x2="50" y2="55" stroke="#003BFF" stroke-width="4"/>
+        <!-- Banda base en Blanco -->
+        <rect x="30" y="88" width="40" height="8" fill="#FFFFFF"/>
+      </svg>
+      <h1 style="margin: 0; color: #FFFFFF; font-size: 1.5rem; font-weight: 700; letter-spacing: 1px;">VERBALIAX</h1>
+    </div>
+    <div class="header-controls">
+      <div class="style-selector-container">
+        <label for="style-select">Tono:</label>
+        <select id="style-select">
+          <option value="apa7" selected>APA 7ª Edición</option>
+          <option value="formal">Formal</option>
+          <option value="coloquial">Informal / Coloquial</option>
+        </select>
       </div>
+      <button id="btn-toggle-layout" title="Intercambiar Vista">⇄ Intercambiar Vista</button>
+      <button id="btn-reset-key" title="Cambiar API Key">🔑 Cambiar API Key</button>
+    </div>
+  </header>
 
-      <div class="panel">
-        <h2>Versión Perfeccionada</h2>
-        <div id="output-text" style="flex:1; padding:12px; background:#0f172a; border-radius:4px; border:1px solid #334155; overflow-y:auto; white-space:pre-wrap; word-break:break-word;">El texto mejorado aparecerá aquí...</div>
-        <div class="buttons">
-          <button class="btn-secondary" onclick="copyText()">Copiar</button>
-          <button class="btn-secondary" onclick="downloadText()">Descargar</button>
+  <!-- PANEL 1: DOCUMENTO FINAL (Superior) -->
+  <section class="panel" id="panel-final" aria-label="Documento Final">
+    <div class="panel-header">
+      <span class="panel-title">
+        <span class="panel-dot dot-green"></span>
+        Documento Final
+        <span id="badge-final-style" style="font-size:10px; color:var(--text-muted); font-weight:400; margin-left:4px;">APA 7ª ed. · Solo lectura</span>
+      </span>
+      <div style="display: flex; gap: 8px;">
+        <button id="btn-clear" onclick="clearDocument()" title="Limpiar todo el documento y el historial">
+          🧹 Limpiar
+        </button>
+        <button id="btn-copy" onclick="copyFinalText()" title="Copiar texto al portapapeles">
+          📋 Copiar texto
+        </button>
+      </div>
+    </div>
+    <div id="final-document-area">
+      <div class="empty-state" id="final-empty">
+        <div class="empty-state-icon">📄</div>
+        <div class="empty-state-text" id="final-empty-text">El texto corregido aparecerá aquí con formato APA 7ª edición.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANEL 2: HISTORIAL TUTOR (Intermedio) -->
+  <section class="panel" id="panel-tutor" aria-label="Historial Tutor">
+    <div class="panel-header">
+      <span class="panel-title">
+        <span class="panel-dot dot-blue"></span>
+        Historial Tutor
+      </span>
+      <!-- Leyenda de colores de errores -->
+      <div class="legend" aria-label="Leyenda de tipos de error">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--err-spelling)"></div> Ortografía
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--err-grammar)"></div> Gramática
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--err-punctuation)"></div> Puntuación
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--err-style)"></div> Estilo
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--err-capitalization)"></div> Mayúsculas
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="maintenance" id="maintenance">
-    <div class="maintenance-content">
-      <h2>🚧 Sistema en Mantenimiento</h2>
-      <p>Has alcanzado tu límite diario de 1500 peticiones.</p>
-      <p>El contador se reinicia automáticamente a las 00:00.</p>
+    <div id="tutor-history" role="log" aria-live="polite">
+      <div class="empty-state" id="tutor-empty">
+        <div class="empty-state-icon">🔍</div>
+        <div class="empty-state-text">Aquí verás tu texto original con las correcciones marcadas.<br>Haz clic en cualquier palabra subrayada para ver la explicación.</div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <script>
-    const QUOTA_LIMIT = 1500;
-    const STORAGE_KEY = 'verbaliax_quota';
-    const DATE_KEY = 'verbaliax_date';
+  <!-- PANEL 3: CAJA DE INGRESO (Inferior) -->
+  <section class="panel" id="panel-input" aria-label="Caja de Ingreso">
+    <div class="panel-header">
+      <span class="panel-title">
+        <span class="panel-dot dot-violet"></span>
+        Ingreso de texto
+      </span>
+    </div>
+    <div class="panel-content">
+      <!-- Sub-sección: API Key (visible solo si no hay clave guardada) -->
+      <div id="api-key-section" role="form" aria-label="Configuración de API Key">
+        <label for="input-api-key">🔑 API Key de Gemini:</label>
+        <input
+          type="password"
+          id="input-api-key"
+          placeholder="Pega aquí tu API Key (AIza...)"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="btn-save-key" onclick="saveApiKey()">Guardar clave</button>
+      </div>
 
-    function getQuotaData() {
-      const today = new Date().toLocaleDateString();
-      const stored = localStorage.getItem(DATE_KEY);
-      
-      if (stored !== today) {
-        localStorage.setItem(DATE_KEY, today);
-        localStorage.setItem(STORAGE_KEY, '0');
-        return 0;
+      <!-- Sub-sección: Textarea de borrador (visible cuando hay clave guardada) -->
+      <div id="text-input-section">
+        <textarea
+          id="draft-textarea"
+          placeholder="Escribe o pega tu borrador aquí…"
+          aria-label="Texto borrador para corregir"
+          spellcheck="false"
+        ></textarea>
+        <button id="btn-process" onclick="handleProcess()" style="display: flex; align-items: center; justify-content: center;">
+          <div class="spinner" id="spinner"></div>
+          <svg id="btn-process-icon" viewBox="0 0 100 100" width="18" height="18" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(135deg); margin-right: 8px; flex-shrink: 0;">
+            <path d="M50 10 L80 60 L70 80 L30 80 L20 60 Z" fill="#003BFF"/>
+            <circle cx="50" cy="55" r="7" fill="#72E7FF"/>
+            <line x1="50" y1="10" x2="50" y2="55" stroke="#72E7FF" stroke-width="4"/>
+          </svg>
+          <span id="btn-process-label">Procesar</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /#app -->
+
+<!-- TARJETA EXPLICATIVA (Tooltip flotante) -->
+<div id="explanation-card" role="tooltip" aria-live="polite">
+  <button class="card-close" onclick="hideExplanationCard()" aria-label="Cerrar">✕</button>
+  <div class="card-error-type" id="card-error-type"></div>
+  <div class="card-original" id="card-original"></div>
+  <div class="card-corrected" id="card-corrected"></div>
+  <div class="card-rule" id="card-rule"></div>
+</div>
+
+<!-- TOOLTIP DE GLOSARIO GRAMATICAL (anidado) -->
+<div id="glossary-tooltip" role="tooltip" aria-live="polite">
+  <strong id="glossary-tooltip-term"></strong>
+  <span id="glossary-tooltip-def"></span>
+</div>
+
+<!-- TOAST de notificaciones -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+
+<script>
+// ============================================================
+//  VERBALIAX — JavaScript Vanilla (SPA)
+//  Basado en spec.md aprobada · @engineer
+// ============================================================
+
+// --- Constantes ---
+const STORAGE_KEY_API  = 'verbaliax_api_key';
+const GEMINI_BASE_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+// --- Estado global acumulado (Modelo "Document Builder") ---
+let accumulatedText = "";        // Texto acumulado del tono activo
+let accumulatedAnnotations = [];
+let lastSelectedStyle = 'apa7';  // Tono que se usó para construir accumulatedText
+
+// Mapa de error_category (español, valor del schema) a etiquetas con emoji
+const ERROR_LABELS = {
+  'Ortografía':  '🔴 Ortografía',
+  'Gramática':   '🔵 Gramática',
+  'Puntuación':  '🟠 Puntuación',
+  'Estilo':      '🟢 Estilo',
+  'Mayúsculas':  '🟣 Mayúsculas'
+};
+
+// Mapa de error_category a clases CSS
+const ERROR_CLASSES = {
+  'Ortografía':  'error-spelling',
+  'Gramática':   'error-grammar',
+  'Puntuación':  'error-punctuation',
+  'Estilo':      'error-style',
+  'Mayúsculas':  'error-capitalization'
+};
+
+// ============================================================
+//  initApp()
+//  Punto de entrada: verifica si hay API Key guardada y
+//  muestra la UI correspondiente.
+// ============================================================
+function initApp() {
+  const apiKey = localStorage.getItem(STORAGE_KEY_API);
+
+  if (apiKey) {
+    // Mostrar interfaz principal de escritura
+    showMainInterface();
+  } else {
+    // Mostrar campo para ingresar la API Key
+    showApiKeyInterface();
+  }
+
+  // Listener global para cerrar la tarjeta explicativa al clic fuera
+  document.addEventListener('click', function(e) {
+    const card    = document.getElementById('explanation-card');
+    const tooltip = document.getElementById('glossary-tooltip');
+
+    // Cerrar tooltip de glosario si se clica fuera de él
+    if (
+      tooltip.style.display !== 'none' &&
+      !tooltip.contains(e.target) &&
+      !e.target.classList.contains('glossary-term')
+    ) {
+      hideGlossaryTooltip();
+    }
+
+    // Cerrar tarjeta explicativa si se clica fuera de ella
+    if (
+      card.style.display !== 'none' &&
+      !card.contains(e.target) &&
+      !e.target.classList.contains('error-word')
+    ) {
+      hideExplanationCard();
+      hideGlossaryTooltip();
+    }
+  });
+
+  // Permitir enviar con Ctrl+Enter en el textarea
+  document.getElementById('draft-textarea').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.ctrlKey) {
+      e.preventDefault();
+      handleProcess();
+    }
+  });
+}
+
+// ============================================================
+//  showApiKeyInterface()
+//  Muestra el campo para ingresar la API Key.
+// ============================================================
+function showApiKeyInterface() {
+  document.getElementById('api-key-section').style.display  = 'flex';
+  document.getElementById('text-input-section').style.display = 'none';
+  if (document.querySelector('.header-controls')) {
+    document.querySelector('.header-controls').style.display = 'none';
+  }
+}
+
+// ============================================================
+//  showMainInterface()
+//  Oculta el campo de API Key y muestra el área de escritura.
+// ============================================================
+function showMainInterface() {
+  document.getElementById('api-key-section').style.display  = 'none';
+  document.getElementById('text-input-section').style.display = 'flex';
+  if (document.querySelector('.header-controls')) {
+    document.querySelector('.header-controls').style.display = 'flex';
+  }
+  document.getElementById('btn-reset-key').style.display    = 'inline-flex';
+}
+
+// ============================================================
+//  saveApiKey()
+//  Lee el input de API Key, valida, guarda en localStorage
+//  y actualiza la UI.
+// ============================================================
+function saveApiKey() {
+  const input  = document.getElementById('input-api-key');
+  const apiKey = input.value.trim();
+
+  if (!apiKey) {
+    showToast('⚠️ Por favor ingresa tu API Key antes de continuar.');
+    input.focus();
+    return;
+  }
+
+  if (apiKey.length < 30) {
+    showToast('⚠️ La clave parece demasiado corta. Verifica que hayas pegado la clave completa.');
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEY_API, apiKey);
+  input.value = '';
+  showMainInterface();
+  showToast('✅ API Key guardada correctamente.');
+  document.getElementById('draft-textarea').focus();
+}
+
+// Botón "Cambiar API Key" en la cabecera
+document.getElementById('btn-reset-key').addEventListener('click', function() {
+  if (confirm('¿Deseas eliminar la API Key guardada y configurar una nueva?')) {
+    localStorage.removeItem(STORAGE_KEY_API);
+    showApiKeyInterface();
+    showToast('🔑 API Key eliminada. Ingresa una nueva para continuar.');
+  }
+});
+
+// Botón "Intercambiar Vista"
+document.getElementById('btn-toggle-layout').addEventListener('click', function() {
+  document.getElementById('app').classList.toggle('swap-layout');
+});
+
+// Actualizar la interfaz dinámica de acuerdo al Tono seleccionado
+document.getElementById('style-select').addEventListener('change', function() {
+  const selectedValue = this.value;
+  const badge = document.getElementById('badge-final-style');
+  const emptyText = document.getElementById('final-empty-text');
+
+  const styleMaps = {
+    'apa7': 'APA 7ª ED. · Solo lectura',
+    'formal': 'ESTILO FORMAL · Solo lectura',
+    'coloquial': 'ESTILO COLOQUIAL · Solo lectura'
+  };
+
+  const placeholderMaps = {
+    'apa7': 'El texto corregido aparecerá aquí con formato APA 7ª edición.',
+    'formal': 'El texto corregido aparecerá aquí con estilo formal.',
+    'coloquial': 'El texto corregido aparecerá aquí con estilo informal/coloquial.'
+  };
+
+  if (badge) badge.textContent = styleMaps[selectedValue] || styleMaps['apa7'];
+  if (emptyText) emptyText.textContent = placeholderMaps[selectedValue] || placeholderMaps['apa7'];
+
+  // Si hay correcciones guardadas en memoria, actualizar el panel al instante (cero latencia/tokens)
+  if (window.currentCorrections && window.currentCorrections[selectedValue]) {
+    renderCorrectedText(window.currentCorrections[selectedValue]);
+  }
+});
+
+// ============================================================
+//  handleProcess()
+//  Manejador del botón "Procesar": captura texto, limpia
+//  textarea y llama a processText().
+// ============================================================
+async function handleProcess() {
+  const textarea = document.getElementById('draft-textarea');
+  const rawText  = textarea.value.trim();
+
+  if (!rawText) {
+    showToast('✏️ Escribe algo antes de procesar.');
+    textarea.focus();
+    return;
+  }
+
+  // Mostrar estado de carga
+  setLoadingState(true);
+
+  try {
+    await processText(rawText);
+    textarea.value = ''; // Limpiar el textarea solo en caso de éxito
+  } catch (err) {
+    // LOG DE DIAGNÓSTICO: detalle completo del error en DevTools → Consola
+    console.error('Detalle del error en Verbaliax:', err);
+    showToast('❌ ' + (err.message || 'No se pudo conectar con Gemini.'));
+  } finally {
+    setLoadingState(false);
+    textarea.focus();
+  }
+}
+
+// ============================================================
+//  setLoadingState(isLoading)
+//  Activa o desactiva el spinner y el botón de procesar.
+// ============================================================
+function setLoadingState(isLoading) {
+  const btn     = document.getElementById('btn-process');
+  const spinner = document.getElementById('spinner');
+  const label   = document.getElementById('btn-process-label');
+  const icon    = document.getElementById('btn-process-icon');
+
+  btn.disabled       = isLoading;
+  label.textContent  = isLoading ? 'Procesando…' : 'Procesar';
+  spinner.className  = isLoading ? 'spinner active' : 'spinner';
+  if (icon) {
+    icon.style.display = isLoading ? 'none' : 'block';
+  }
+}
+
+// ============================================================
+//  sanitizeAndParseJSON(rawString)
+//  Estrategia en dos pasos:
+//  1. PRIMERO intenta JSON.parse() directo (cubre JSON Mode limpio).
+//  2. Si falla, aplica sanitización (quita markdown, recorta llaves)
+//     y reintenta el parseo.
+// ============================================================
+function sanitizeAndParseJSON(rawString) {
+  const trimmed = rawString.trim();
+
+  // ── Paso 1: parseo directo (JSON ya válido, viene de JSON Mode) ──
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // No era JSON puro — aplicar sanitización antes de reintentar
+  }
+
+  // ── Paso 2: sanitización y reintento ──
+  let cleaned = trimmed;
+
+  // 2a. Eliminar bloque de código markdown si existe
+  //     Cubre: ```json\n...\n```, ```JSON...```, ```...```
+  cleaned = cleaned
+    .replace(/^```(?:json)?\s*/im, '')
+    .replace(/\s*```\s*$/im, '');
+
+  // 2b. Extraer estrictamente entre el primer '{' y el último '}'
+  //     para descartar texto residual antes o después del objeto
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace  = cleaned.lastIndexOf('}');
+
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error(
+      'La respuesta no contiene un objeto JSON válido. ' +
+      'Revisa la consola (F12 → TEXTO CRUDO A PARSEAR) para ver qué devolvió Gemini.'
+    );
+  }
+
+  cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+
+  // 2c. Parseo final sobre el string limpio
+  try {
+    return JSON.parse(cleaned);
+  } catch (parseError) {
+    throw new Error(
+      'No se pudo interpretar la respuesta como JSON tras sanitizar. ' +
+      'Detalle: ' + parseError.message
+    );
+  }
+}
+
+// ============================================================
+//  processText(rawText)
+//  Función principal: construye el prompt y llama a la API.
+//  Luego distribuye la respuesta a los paneles.
+// ============================================================
+async function processText(rawText) {
+  const apiKey = localStorage.getItem(STORAGE_KEY_API);
+
+  if (!apiKey) {
+    showToast('⚠️ No hay API Key guardada. Por favor configura una.');
+    return;
+  }
+
+  // Capturar el tono seleccionado ANTES de llamar a la API
+  const selectedStyle = document.getElementById('style-select')?.value || 'apa7';
+  lastSelectedStyle = selectedStyle;
+
+  // Construir el prompt con el tono inyectado
+  const prompt = buildPrompt(rawText, selectedStyle);
+
+  // Llamar a la API
+  const data = await callGeminiAPI(prompt, apiKey);
+
+  // Extraer el texto usando la ruta correcta de la API de Gemini
+  const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!responseText) {
+    console.error('Estructura inesperada de la respuesta:', JSON.stringify(data, null, 2));
+    throw new Error(
+      'La API no retornó texto en la ruta esperada (candidates[0].content.parts[0].text). ' +
+      'Revisa la consola del navegador (F12) para ver la respuesta cruda.'
+    );
+  }
+
+  // LOG DE DIAGNÓSTICO: texto crudo que va al parser
+  console.log('TEXTO CRUDO A PARSEAR:', responseText);
+
+  // Sanitizar y parsear la respuesta
+  const result = sanitizeAndParseJSON(responseText);
+
+  // Extraer el único texto corregido (nuevo modelo single-tone)
+  const newCorrectedText = result.corrected_text || rawText;
+
+  // Acumular en la cadena global con salto de párrafo
+  accumulatedText += (accumulatedText ? "\n\n" : "") + newCorrectedText;
+
+  // Acumular anotaciones
+  const newAnnotations = result.annotations || [];
+  accumulatedAnnotations = accumulatedAnnotations.concat(newAnnotations);
+
+  // Distribuir resultados a los paneles
+  renderCorrectedText(accumulatedText);
+  renderTutorHistory(rawText, newAnnotations);
+}
+
+// ============================================================
+//  clearDocument()
+//  Limpia las variables globales, los paneles al estado vacío
+//  y limpia el textarea de entrada.
+// ============================================================
+function clearDocument() {
+  if (confirm('¿Deseas vaciar por completo el documento acumulado y el historial?')) {
+    accumulatedText = "";
+    accumulatedAnnotations = [];
+    lastSelectedStyle = document.getElementById('style-select')?.value || 'apa7';
+
+    // Restaurar el panel de documento al estado vacío
+    const area = document.getElementById('final-document-area');
+    area.innerHTML = `
+      <div class="empty-state" id="final-empty" style="display: flex;">
+        <div class="empty-state-icon">📄</div>
+        <div class="empty-state-text" id="final-empty-text">El texto corregido aparecerá aquí.</div>
+      </div>
+    `;
+
+    // Restaurar el panel de historial del tutor al estado vacío
+    const tutorContainer = document.getElementById('tutor-history');
+    tutorContainer.innerHTML = `
+      <div class="empty-state" id="tutor-empty" style="display: flex;">
+        <div class="empty-state-icon">🎓</div>
+        <div class="empty-state-text">El historial de correcciones aparecerá aquí con las explicaciones del tutor.</div>
+      </div>
+    `;
+
+    // Limpiar textarea
+    document.getElementById('draft-textarea').value = '';
+
+    showToast('🧹 Documento e historial reiniciados.');
+  }
+}
+
+// ============================================================
+//  buildPrompt(rawText)
+//  Construye el prompt estructurado que instruye a Gemini a
+//  retornar la respuesta en el formato JSON especificado.
+// ============================================================
+function buildPrompt(rawText, selectedStyle) {
+  const styleDescriptions = {
+    apa7:      'Norma APA 7ª Edición estrictamente (tono académico formal estricto, sin coloquialismos).',
+    formal:    'Tono formal y profesional (claro, directo, sin coloquialismos).',
+    coloquial: 'Tono cercano y relajado, permitiendo tuteo ("tú") y expresiones cotidianas sin alterar la intención del texto.'
+  };
+  const styleLabel = styleDescriptions[selectedStyle] || styleDescriptions['apa7'];
+
+  return `Eres Verbaliax, un corrector y tutor de escritura académica experto en ortografía y gramática española según las normas de la Real Academia Española (RAE). Tu misión es analizar el texto del usuario, corregirlo en el estilo indicado y devolver un análisis detallado de errores.
+
+ESTILO REQUERIDO: ${styleLabel}
+
+INSTRUCCIONES ESTRICTAS:
+
+CERO CORRECCIONES SILENCIOSAS: Es OBLIGATORIO y CRÍTICO que CADA modificación que le hagas al texto original tenga su respectiva explicación en el array annotations. Si cambias una coma por un punto, si alteras la estructura de una oración, o si cambias una minúscula por mayúscula, DEBES documentarlo (ej. Categoría: Puntuación). No puedes arreglar absolutamente nada en el texto sin reportarlo al usuario en el JSON.
+
+1. TEXTO CORREGIDO: Genera UNA ÚNICA versión corregida del texto en el ESTILO REQUERIDO indicado arriba. Devuélvela en el campo "corrected_text" (string, no objeto).
+
+2. SIGNOS DE PUNTUACIÓN (OBLIGATORIO): En español, las preguntas y exclamaciones SIEMPRE deben llevar los signos de apertura (¿ y ¡) además de los de cierre. Si falta el signo de apertura "¿" o "¡", esto ES UN ERROR DE PUNTUACIÓN, NO de mayúsculas. Ejemplo: "Como te llamas?" → "¿Cómo te llamas?" (error: Puntuación).
+
+3. CATEGORIZACIÓN CORRECTA DE ERRORES — el campo "error_category" debe contener EXACTAMENTE uno de estos valores en español:
+   - "Ortografía": Palabra mal escrita, tilde faltante o incorrecta (ej. "tambien" → "también").
+   - "Gramática": Error de concordancia, uso incorrecto de verbo, pronombre o preposición.
+   - "Puntuación": Falta o uso incorrecto de signos de puntuación, incluidos ¿ y ¡ de apertura, comas, puntos, punto y coma, etc.
+   - "Estilo": Expresión inadecuada para el tono solicitado, redundancia, voz pasiva innecesaria o vocabulario inapropiado.
+   - "Mayúsculas": Uso incorrecto de mayúsculas o minúsculas en nombres propios, inicio de oración, siglas, etc. NO uses esta categoría para signos de puntuación faltantes.
+
+4. FORMATO DE RESPUESTA: Devuelve ÚNICAMENTE el siguiente JSON válido, sin texto adicional, sin bloques de código markdown:
+
+{
+  "corrected_text": "Texto corregido en el estilo requerido.",
+  "annotations": [
+    {
+      "original_word": "fragmento exacto del texto original que contiene el error",
+      "corrected_word": "la versión corregida de ese fragmento",
+      "error_category": "Ortografía|Gramática|Puntuación|Estilo|Mayúsculas",
+      "explanation": "Explicación breve y didáctica de la regla RAE aplicada.",
+      "glossary": []
+    }
+  ]
+}
+
+REGLAS ADICIONALES:
+- Si "original_word" es una frase (ej. "Como estas?"), "corrected_word" debe ser la frase completa corregida (ej. "¿Cómo estás?").
+- Si no hay errores en el texto, devuelve "annotations" como array vacío: [].
+- No inventes errores. Solo reporta errores reales y objetivos según las normas RAE.
+- GLOSARIO — OBLIGATORIO: Si utilizas términos técnicos gramaticales en tu explicación, inclúyelos en el arreglo "glossary". RESTRICCIÓN CRÍTICA: Limita el glosario a un MÁXIMO de 2 términos por corrección. Las definiciones deben ser ultracortas, de una sola oración (máximo 10 palabras).
+- CONCISIÓN OBLIGATORIA: Las "explanation" deben ser directas y breves, máximo 3 líneas.
+
+Texto a analizar:
+"${rawText}"
+
+RECUERDA: Tu respuesta debe ser ÚNICAMENTE el siguiente objeto JSON, sin ningún texto adicional:
+{ "corrected_text": "...", "annotations": [ { "original_word": "...", "corrected_word": "...", "error_category": "...", "explanation": "...", "glossary": [] } ] }`;
+}
+
+// ============================================================
+//  callGeminiAPI(prompt, apiKey)
+//  Realiza la llamada fetch POST a la API de Gemini.
+//  Retorna el objeto JSON completo de la respuesta para
+//  que processText() lo inspeccione y extraiga el texto.
+// ============================================================
+async function callGeminiAPI(prompt, apiKey) {
+  const url      = `${GEMINI_BASE_URL}?key=${apiKey}`;
+  const payload  = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 8192,
+      response_mime_type: 'application/json',
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          corrected_text: { type: 'STRING' },
+          annotations: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                original_word:  { type: 'STRING' },
+                corrected_word: { type: 'STRING' },
+                error_category: { type: 'STRING' },
+                explanation:    { type: 'STRING' },
+                glossary: {
+                  type: 'ARRAY',
+                  items: {
+                    type: 'OBJECT',
+                    properties: {
+                      term:       { type: 'STRING' },
+                      definition: { type: 'STRING' }
+                    },
+                    required: ['term', 'definition']
+                  }
+                }
+              },
+              required: ['original_word', 'corrected_word', 'error_category', 'explanation']
+            }
+          }
+        },
+        required: ['corrected_text', 'annotations']
       }
-      return parseInt(localStorage.getItem(STORAGE_KEY) || '0');
+    }
+  };
+
+  const response = await fetch(url, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload)
+  });
+
+  // Manejo explícito de errores HTTP (400, 401, 403, 429, 500, etc.)
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    const msg = errData?.error?.message || 'Sin detalle del servidor';
+    throw new Error(`Error HTTP ${response.status}: ${msg}`);
+  }
+
+  const data = await response.json();
+
+  // LOG DE DIAGNÓSTICO: inspecciona la respuesta cruda en DevTools → Consola
+  console.log('RESPUESTA CRUDA de Gemini:', data);
+  console.log('Motivo de finalización (finishReason):', data?.candidates?.[0]?.finishReason);
+
+  return data;
+}
+
+// ============================================================
+//  renderCorrectedText(correctedText)
+//  Inyecta el texto corregido en el Panel 1 con formato APA.
+// ============================================================
+function renderCorrectedText(correctedText) {
+  const area  = document.getElementById('final-document-area');
+  const empty = document.getElementById('final-empty');
+
+  // Ocultar estado vacío
+  if (empty) empty.style.display = 'none';
+
+  // Limpiar el contenedor por completo para sobreescritura absoluta
+  area.innerHTML = '';
+
+  // Crear elemento de párrafo con estilo APA
+  const p = document.createElement('p');
+  p.className   = 'apa-paragraph';
+  p.textContent = correctedText;
+
+  area.appendChild(p);
+
+  // Auto-scroll al final del Panel 1
+  area.scrollTop = area.scrollHeight;
+}
+
+// ============================================================
+//  renderTutorHistory(originalText, errorAnnotations)
+//  Construye y agrega una entrada al Panel 2 con el texto
+//  original anotado con spans de colores.
+// ============================================================
+function renderTutorHistory(originalText, errorAnnotations) {
+  const historyContainer = document.getElementById('tutor-history');
+  const empty            = document.getElementById('tutor-empty');
+
+  // Ocultar estado vacío
+  if (empty) empty.style.display = 'none';
+
+  // Si no hay errores, inyectar la Success Card de felicitación
+  if (errorAnnotations.length === 0) {
+    historyContainer.innerHTML = '';
+
+    const successCard = document.createElement('div');
+    successCard.style.textAlign = 'center';
+    successCard.style.padding   = '40px 20px';
+    successCard.style.background = '#ffffff';
+
+    successCard.innerHTML = `
+      <div style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center;">
+        <svg viewBox="0 0 100 100" width="56" height="56" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#72E7FF" stroke-width="8"/>
+          <path d="M30 50 L45 65 L70 35" fill="none" stroke="#72E7FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3 style="margin: 0 0 10px 0; color: #003BFF; font-size: 1.3rem; font-weight: 700; font-family: 'Inter', sans-serif;">¡Texto Impecable!</h3>
+      <p style="margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; font-family: 'Inter', sans-serif;">No se encontraron errores de ortografía, gramática, puntuación ni estilo. Tu redacción es excelente.</p>
+    `;
+
+    historyContainer.appendChild(successCard);
+  } else {
+    // Si anteriormente estaba el estado de éxito, limpiarlo para inyectar correcciones reales
+    if (historyContainer.innerHTML.includes('¡Texto Impecable!')) {
+      historyContainer.innerHTML = '';
     }
 
-    function setQuota(value) {
-      localStorage.setItem(STORAGE_KEY, value.toString());
+    // Crear entrada de historial normal
+    const entry = document.createElement('div');
+    entry.className = 'history-entry';
+
+    // Metadata (hora)
+    const meta = document.createElement('div');
+    meta.className   = 'history-entry-meta';
+    const now        = new Date();
+    meta.textContent = `📝 ${now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })} · ${errorAnnotations.length} corrección(es)`;
+    entry.appendChild(meta);
+
+    // Contenido del texto con anotaciones
+    const content = document.createElement('div');
+    content.appendChild(buildAnnotatedText(originalText, errorAnnotations));
+
+    entry.appendChild(content);
+    historyContainer.appendChild(entry);
+  }
+
+  // Auto-scroll al final del historial
+  historyContainer.scrollTop = historyContainer.scrollHeight;
+}
+
+// ============================================================
+//  buildAnnotatedText(originalText, annotations)
+//  Toma el texto original y el array de anotaciones,
+//  y retorna un DocumentFragment con los spans de error.
+// ============================================================
+function buildAnnotatedText(originalText, annotations) {
+  const fragment = document.createDocumentFragment();
+  let   lastIndex = 0;
+  let   workText  = originalText;
+
+  // Ordenar anotaciones por posición de aparición en el texto
+  // Para cada anotación, buscamos la primera ocurrencia de original_word
+  const located = [];
+  annotations.forEach(ann => {
+    const idx = workText.toLowerCase().indexOf((ann.original_word || '').toLowerCase());
+    if (idx !== -1) {
+      located.push({ ...ann, index: idx });
+    }
+  });
+
+  // Ordenar por índice de aparición
+  located.sort((a, b) => a.index - b.index);
+
+  // Reconstruir el texto intercalando spans
+  let cursor = 0;
+  located.forEach(ann => {
+    const start = originalText.toLowerCase().indexOf(ann.original_word.toLowerCase(), cursor);
+    if (start === -1 || start < cursor) return;
+
+    // Texto antes del error (sin anotación)
+    if (start > cursor) {
+      fragment.appendChild(document.createTextNode(originalText.slice(cursor, start)));
     }
 
-    function incrementQuota() {
-      const current = getQuotaData();
-      const next = current + 1;
-      setQuota(next);
-      updateQuotaDisplay(next);
-      return next;
+    // Span del error
+    const word = originalText.slice(start, start + ann.original_word.length);
+    // Usar error_category (nuevo schema) con fallback a error_type (compatibilidad)
+    const category = ann.error_category || ann.error_type || 'Ortografía';
+    const span = buildErrorSpan(word, category, ann);
+    fragment.appendChild(span);
+
+    cursor = start + ann.original_word.length;
+  });
+
+  // Resto del texto sin errores
+  if (cursor < originalText.length) {
+    fragment.appendChild(document.createTextNode(originalText.slice(cursor)));
+  }
+
+  return fragment;
+}
+
+// ============================================================
+//  buildErrorSpan(word, errorType, errorData)
+//  Retorna un <span> con la clase de color correcta y el
+//  listener para mostrar la tarjeta explicativa.
+// ============================================================
+function buildErrorSpan(word, errorType, errorData) {
+  const span = document.createElement('span');
+  span.textContent = word;
+  span.className   = `error-word ${ERROR_CLASSES[errorType] || 'error-spelling'}`;
+  span.setAttribute('role', 'button');
+  span.setAttribute('tabindex', '0');
+  span.setAttribute('aria-label', `Error de ${errorType || 'ortografía'}: ${word}`);
+
+  // Mostrar tarjeta al hacer clic
+  span.addEventListener('click', function(e) {
+    e.stopPropagation(); // Evitar que el listener global la cierre inmediatamente
+    showExplanationCard(span, errorData);
+  });
+
+  // Accesibilidad: también con teclado
+  span.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      showExplanationCard(span, errorData);
     }
+  });
 
-    function updateQuotaDisplay(count) {
-      const quotaEl = document.getElementById('quota-display');
-      const correctBtn = document.getElementById('correct-btn');
-      const maintenance = document.getElementById('maintenance');
-      
-      quotaEl.textContent = `CUOTA: ${count}/${QUOTA_LIMIT}`;
-      
-      if (count >= QUOTA_LIMIT) {
-        quotaEl.classList.add('error');
-        correctBtn.disabled = true;
-        maintenance.classList.add('active');
-      } else if (count >= QUOTA_LIMIT * 0.8) {
-        quotaEl.classList.add('warning');
-      }
-    }
+  return span;
+}
 
-    async function processText() {
-      const apiKey = document.getElementById('api-key').value;
-      const inputText = document.getElementById('input-text').value;
-      const outputEl = document.getElementById('output-text');
-      const correctBtn = document.getElementById('correct-btn');
+// ============================================================
+//  showExplanationCard(anchorElement, errorData)
+//  Posiciona y muestra el tooltip con la regla gramatical
+//  cerca del <span> clickeado.
+// ============================================================
+function showExplanationCard(anchorElement, errorData) {
+  const card = document.getElementById('explanation-card');
 
-      if (!inputText.trim()) {
-        outputEl.textContent = 'Por favor, ingresa texto para mejorar.';
-        return;
-      }
+  // Rellenar contenido de la tarjeta
+  // Soporta tanto error_category (nuevo schema) como error_type (compatibilidad)
+  const errorCategory = errorData.error_category || errorData.error_type || 'Ortografía';
+  document.getElementById('card-error-type').textContent = ERROR_LABELS[errorCategory] || errorCategory;
 
-      if (!apiKey.trim()) {
-        outputEl.textContent = 'Por favor, ingresa tu API key de Gemini.';
-        return;
-      }
+  // Mapear categoría en español a variable CSS de color
+  const cssColorMap = {
+    'Ortografía':  '--err-spelling',
+    'Gramática':   '--err-grammar',
+    'Puntuación':  '--err-punctuation',
+    'Estilo':      '--err-style',
+    'Mayúsculas':  '--err-capitalization'
+  };
+  const cssVar = cssColorMap[errorCategory] || '--err-spelling';
+  document.getElementById('card-error-type').style.color = getComputedStyle(document.documentElement)
+    .getPropertyValue(cssVar).trim();
 
-      // Check quota before making request
-      const currentQuota = getQuotaData();
-      if (currentQuota >= QUOTA_LIMIT) {
-        document.getElementById('maintenance').classList.add('active');
-        correctBtn.disabled = true;
-        return;
-      }
+  document.getElementById('card-original').textContent  = `Original: "${errorData.original_word}"`;
+  document.getElementById('card-corrected').textContent = `Corrección: "${errorData.corrected_word}"`;
 
-      correctBtn.disabled = true;
-      outputEl.textContent = 'Mejorando texto...';
+  // Renderizar explicación con términos del glosario como spans interactivos (title nativo)
+  const ruleEl   = document.getElementById('card-rule');
+  const glossary = Array.isArray(errorData.glossary) ? errorData.glossary : [];
 
-      try {
-        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Eres un corrector académico experto. Mejora el siguiente texto manteniendo el significado original pero corrigiendo gramática, ortografía y fluidez. Solo devuelve el texto mejorado sin explicaciones:\n\n${inputText}`
-              }]
-            }]
-          })
-        });
+  if (glossary.length > 0) {
+    // Escapar el texto plano para evitar inyección de HTML accidental
+    let html = (errorData.explanation || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
 
-        if (!response.ok) {
-          throw new Error('Error en API: ' + response.status);
-        }
-
-        const data = await response.json();
-        const improvedText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Error procesando texto';
-        
-        // Increment quota on successful request
-        incrementQuota();
-        outputEl.textContent = improvedText;
-
-      } catch (error) {
-        outputEl.textContent = 'Error: ' + error.message;
-      } finally {
-        correctBtn.disabled = false;
-      }
-    }
-
-    function clearText() {
-      document.getElementById('input-text').value = '';
-      document.getElementById('output-text').textContent = 'El texto mejorado aparecerá aquí...';
-    }
-
-    function copyText() {
-      const text = document.getElementById('output-text').textContent;
-      navigator.clipboard.writeText(text);
-      alert('Copiado al portapapeles');
-    }
-
-    function downloadText() {
-      const text = document.getElementById('output-text').textContent;
-      const element = document.createElement('a');
-      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-      element.setAttribute('download', 'verbaliax_resultado.txt');
-      element.style.display = 'none';
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    }
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-      const quota = getQuotaData();
-      updateQuotaDisplay(quota);
-      
-      // Auto-save API key
-      const apiKey = localStorage.getItem('verbaliax_api_key');
-      if (apiKey) document.getElementById('api-key').value = apiKey;
-      
-      document.getElementById('api-key').addEventListener('change', (e) => {
-        localStorage.setItem('verbaliax_api_key', e.target.value);
-      });
+    // Iterar sobre cada término del glosario y envolver las coincidencias
+    // Los términos más largos primero para evitar solapamientos parciales
+    const sorted = [...glossary].sort((a, b) => b.term.length - a.term.length);
+    sorted.forEach(item => {
+      if (!item.term || !item.definition) return;
+      // Escapar caracteres especiales del término para usarlo en RegEx
+      const escapedTerm = item.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedTerm, 'gi');
+      const safeDefinition = item.definition
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;');
+      html = html.replace(
+        regex,
+        match => `<span class="glossary-term" title="${safeDefinition}">${match}</span>`
+      );
     });
-  </script>
+
+    ruleEl.innerHTML = html;
+  } else {
+    // Sin glosario: texto plano (más seguro que innerHTML)
+    ruleEl.textContent = errorData.explanation || '';
+  }
+
+  // Mostrar la tarjeta para poder medir sus dimensiones
+  card.style.display = 'block';
+
+  // Posicionar la tarjeta cerca del span
+  const rect       = anchorElement.getBoundingClientRect();
+  const cardWidth  = card.offsetWidth;
+  const cardHeight = card.offsetHeight;
+  const margin     = 8;
+
+  let top  = rect.bottom + margin;
+  let left = rect.left;
+
+  // Ajustar si se sale por la derecha
+  if (left + cardWidth > window.innerWidth - 12) {
+    left = window.innerWidth - cardWidth - 12;
+  }
+
+  // Ajustar si se sale por abajo → colocar encima del span
+  if (top + cardHeight > window.innerHeight - 12) {
+    top = rect.top - cardHeight - margin;
+  }
+
+  card.style.top  = `${Math.max(8, top)}px`;
+  card.style.left = `${Math.max(8, left)}px`;
+}
+
+// ============================================================
+//  buildExplanationWithGlossary(explanation, glossary)
+//  Toma el texto de explicación y el array de términos del
+//  glosario. Retorna un DocumentFragment donde cada término
+//  encontrado es un <span class="glossary-term"> clicable.
+// ============================================================
+function buildExplanationWithGlossary(explanation, glossary) {
+  const fragment = document.createDocumentFragment();
+
+  if (!glossary || glossary.length === 0) {
+    // Sin términos de glosario: texto plano
+    fragment.appendChild(document.createTextNode(explanation));
+    return fragment;
+  }
+
+  // Ordenar términos de mayor a menor longitud para evitar solapamientos
+  // (ej. "sintagma nominal" antes que "sintagma")
+  const sortedTerms = [...glossary].sort((a, b) => b.term.length - a.term.length);
+
+  // Construir una regex que detecte cualquiera de los términos (insensible a case)
+  const escaped  = sortedTerms.map(g => g.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern  = new RegExp(`(${escaped.join('|')})`, 'gi');
+  const parts    = explanation.split(pattern);
+
+  // Mapa de término en minúsculas a su definición para búsqueda rápida
+  const termMap  = {};
+  sortedTerms.forEach(g => { termMap[g.term.toLowerCase()] = g.definition; });
+
+  parts.forEach(part => {
+    const definition = termMap[part.toLowerCase()];
+    if (definition) {
+      // Es un término del glosario: crear span clicable
+      const span = document.createElement('span');
+      span.className   = 'glossary-term';
+      span.textContent = part;
+      span.setAttribute('tabindex', '0');
+      span.setAttribute('aria-label', `Término gramatical: ${part}`);
+      span.dataset.term       = part;
+      span.dataset.definition = definition;
+
+      span.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showGlossaryTooltip(span, part, definition);
+      });
+      span.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          showGlossaryTooltip(span, part, definition);
+        }
+      });
+      fragment.appendChild(span);
+    } else {
+      // Texto normal entre términos
+      fragment.appendChild(document.createTextNode(part));
+    }
+  });
+
+  return fragment;
+}
+
+// ============================================================
+//  showGlossaryTooltip(anchorEl, term, definition)
+//  Muestra el tooltip anidado con la definición del término
+//  gramatical, posicionado cerca del span clicado.
+// ============================================================
+function showGlossaryTooltip(anchorEl, term, definition) {
+  const tooltip = document.getElementById('glossary-tooltip');
+  document.getElementById('glossary-tooltip-term').textContent = term;
+  document.getElementById('glossary-tooltip-def').textContent  = definition;
+
+  // Mostrar para medir dimensiones
+  tooltip.style.display = 'block';
+
+  const rect        = anchorEl.getBoundingClientRect();
+  const tipWidth    = tooltip.offsetWidth;
+  const tipHeight   = tooltip.offsetHeight;
+  const margin      = 6;
+
+  let top  = rect.bottom + margin;
+  let left = rect.left;
+
+  if (left + tipWidth > window.innerWidth - 10)  left = window.innerWidth - tipWidth - 10;
+  if (top  + tipHeight > window.innerHeight - 10) top  = rect.top - tipHeight - margin;
+
+  tooltip.style.top  = `${Math.max(6, top)}px`;
+  tooltip.style.left = `${Math.max(6, left)}px`;
+}
+
+// ============================================================
+//  hideGlossaryTooltip()
+//  Oculta el tooltip de glosario.
+// ============================================================
+function hideGlossaryTooltip() {
+  document.getElementById('glossary-tooltip').style.display = 'none';
+}
+
+// ============================================================
+//  hideExplanationCard()
+//  Oculta la tarjeta explicativa activa.
+// ============================================================
+function hideExplanationCard() {
+  document.getElementById('explanation-card').style.display = 'none';
+}
+
+// ============================================================
+//  copyFinalText()
+//  Copia el contenido del Panel 1 al portapapeles.
+// ============================================================
+function copyFinalText() {
+  const area = document.getElementById('final-document-area');
+  const paragraphs = area.querySelectorAll('.apa-paragraph');
+
+  if (paragraphs.length === 0) {
+    showToast('⚠️ No hay texto corregido para copiar todavía.');
+    return;
+  }
+
+  // Unir los párrafos con doble salto de línea (convención APA en texto plano)
+  const text = Array.from(paragraphs).map(p => p.textContent).join('\n\n');
+
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      const btn = document.getElementById('btn-copy');
+      btn.textContent = '✅ Copiado';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '📋 Copiar texto';
+        btn.classList.remove('copied');
+      }, 2000);
+      showToast('✅ Texto copiado al portapapeles.');
+    })
+    .catch(() => {
+      showToast('❌ No se pudo copiar. Intenta seleccionar el texto manualmente.');
+    });
+}
+
+// ============================================================
+//  showToast(message)
+//  Muestra una notificación toast temporal en la parte
+//  inferior de la pantalla.
+// ============================================================
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+// ============================================================
+//  INICIO DE LA APLICACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
 </body>
 </html>
